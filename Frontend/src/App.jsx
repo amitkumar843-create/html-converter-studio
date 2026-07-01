@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 // LOCAL-ONLY backend endpoint. Do not change to window.location.hostname for local mode.
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000"; 
 const PREVIEW_WIDTH = 1366;
 const PREVIEW_HEIGHT = 768;
 
