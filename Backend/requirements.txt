@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-multipart
+playwright
+pillow
+python-pptx
+reportlab
+beautifulsoup4
+lxml
