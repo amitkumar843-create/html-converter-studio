@@ -40,8 +40,9 @@ import {
 import { SAMPLE_TEMPLATES } from "./templates";
 import StudioLogo from "./StudioLogo";
 
-// LOCAL-ONLY backend endpoint
-const API_BASE = "http://127.0.0.1:8000";
+// Backend endpoint: set VITE_API_BASE_URL at build time for deployed environments
+// (e.g. Render), falls back to the local dev backend.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 const CATEGORY_CONFIG = {
   "EY Corporate": {
@@ -654,7 +655,7 @@ export default function App() {
 
     if (backendStatus === "offline") {
       setStatus("error");
-      setMessage("Backend server is currently offline at http://127.0.0.1:8000. Please start the backend server.");
+      setMessage(`Backend server is currently offline at ${API_BASE}. Please start the backend server.`);
       addToast("Backend offline. Please start the Python backend.", "error");
       return;
     }
@@ -826,7 +827,7 @@ export default function App() {
               className="health-pill"
               title={
                 backendStatus === "online"
-                  ? "Connected to FastAPI backend at http://127.0.0.1:8000"
+                  ? `Connected to FastAPI backend at ${API_BASE}`
                   : "Backend disconnected. Run Start_Server.bat or start uvicorn."
               }
             >

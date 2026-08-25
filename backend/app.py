@@ -1,3 +1,4 @@
+import os
 import sys
 import asyncio
 import traceback
@@ -6,7 +7,7 @@ from pathlib import Path
 from urllib.parse import quote
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -23,13 +24,18 @@ from converter_pptx import generate_pptx
 
 app = FastAPI(title="Unified HTML to PDF & PPTX Converter")
 
-# CORS for React + Vite frontend at http://127.0.0.1:5173
+# CORS: defaults to local dev origins; set ALLOWED_ORIGINS (comma-separated)
+# in production, e.g. ALLOWED_ORIGINS=https://your-frontend.onrender.com
+_default_origins = "http://127.0.0.1:5173,http://localhost:5173"
+allow_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,16 +51,16 @@ class RequestModel(BaseModel):
     filename: Optional[str] = None
 
 
-def download_url(file_path: str) -> str:
-    return f"http://127.0.0.1:8000/download?path={quote(str(file_path))}"
+def download_url(base_url: str, file_path: str) -> str:
+    return f"{str(base_url).rstrip('/')}/download?path={quote(str(file_path))}"
 
 
 @app.get("/")
-def root():
+def root(request: Request):
     return {
         "status": "running",
         "service": "Unified HTML to PDF & PPTX Converter",
-        "docs": "http://127.0.0.1:8000/docs",
+        "docs": f"{str(request.base_url).rstrip('/')}/docs",
     }
 
 
@@ -142,14 +148,14 @@ def get_sample_content(filename: str):
 # PDF ENDPOINTS
 # ==========================================
 @app.post("/convert/pdf")
-async def convert_pdf(req: RequestModel):
+async def convert_pdf(req: RequestModel, request: Request):
     try:
         file_path = await generate_pdf(req.html, original_filename=req.filename)
         return {
             "status": "success",
             "pdf_file": file_path,
             "output_file_name": Path(file_path).name,
-            "download_url": download_url(file_path),
+            "download_url": download_url(request.base_url, file_path),
         }
     except Exception as e:
         print("ERROR in /convert/pdf:")
@@ -158,7 +164,7 @@ async def convert_pdf(req: RequestModel):
 
 
 @app.post("/convert/pdf/file")
-async def convert_html_file_to_pdf(file: UploadFile = File(...)):
+async def convert_html_file_to_pdf(request: Request, file: UploadFile = File(...)):
     try:
         if not file.filename or not file.filename.lower().endswith((".html", ".htm")):
             raise HTTPException(status_code=400, detail="Please upload a .html or .htm file only.")
@@ -176,7 +182,7 @@ async def convert_html_file_to_pdf(file: UploadFile = File(...)):
             "input_file": file.filename,
             "pdf_file": file_path,
             "output_file_name": Path(file_path).name,
-            "download_url": download_url(file_path),
+            "download_url": download_url(request.base_url, file_path),
         }
     except HTTPException:
         raise
@@ -190,14 +196,14 @@ async def convert_html_file_to_pdf(file: UploadFile = File(...)):
 # PPTX ENDPOINTS
 # ==========================================
 @app.post("/convert/pptx")
-async def convert_pptx(req: RequestModel):
+async def convert_pptx(req: RequestModel, request: Request):
     try:
         file_path = await generate_pptx(req.html, original_filename=req.filename)
         return {
             "status": "success",
             "pptx_file": file_path,
             "output_file_name": Path(file_path).name,
-            "download_url": download_url(file_path),
+            "download_url": download_url(request.base_url, file_path),
         }
     except Exception as e:
         print("ERROR in /convert/pptx:")
@@ -206,7 +212,7 @@ async def convert_pptx(req: RequestModel):
 
 
 @app.post("/convert/pptx/file")
-async def convert_html_file_to_pptx(file: UploadFile = File(...)):
+async def convert_html_file_to_pptx(request: Request, file: UploadFile = File(...)):
     try:
         if not file.filename or not file.filename.lower().endswith((".html", ".htm")):
             raise HTTPException(status_code=400, detail="Please upload a .html or .htm file only.")
@@ -224,7 +230,7 @@ async def convert_html_file_to_pptx(file: UploadFile = File(...)):
             "input_file": file.filename,
             "pptx_file": file_path,
             "output_file_name": Path(file_path).name,
-            "download_url": download_url(file_path),
+            "download_url": download_url(request.base_url, file_path),
         }
     except HTTPException:
         raise
