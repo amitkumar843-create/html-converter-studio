@@ -40,9 +40,9 @@ import {
 import { SAMPLE_TEMPLATES } from "./templates";
 import StudioLogo from "./StudioLogo";
 
-// Backend endpoint: set VITE_API_BASE_URL at build time for deployed environments
+// Backend endpoint: set VITE_API_BASE at build time for deployed environments
 // (e.g. Render), falls back to the local dev backend.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 const CATEGORY_CONFIG = {
   "EY Corporate": {

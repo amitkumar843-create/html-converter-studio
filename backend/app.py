@@ -24,12 +24,12 @@ from converter_pptx import generate_pptx
 
 app = FastAPI(title="Unified HTML to PDF & PPTX Converter")
 
-# CORS: defaults to local dev origins; set ALLOWED_ORIGINS (comma-separated)
-# in production, e.g. ALLOWED_ORIGINS=https://your-frontend.onrender.com
+# CORS: defaults to local dev origins; set CORS_ORIGINS (comma-separated)
+# in production, e.g. CORS_ORIGINS=https://your-frontend.onrender.com
 _default_origins = "http://127.0.0.1:5173,http://localhost:5173"
 allow_origins = [
     origin.strip()
-    for origin in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
+    for origin in os.environ.get("CORS_ORIGINS", _default_origins).split(",")
     if origin.strip()
 ]
 
