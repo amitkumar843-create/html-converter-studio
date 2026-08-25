@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Surveillance Architecture - Portrait Infographic</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --ey-off-black: #2E2E38;
+      --ey-gray-01: #747480;
+      --ey-gray-02: #C4C4CD;
+      --ey-black: #000000;
+      --ey-white: #FFFFFF;
+      --ey-yellow: #FFE600;
+      --green: #2DB757;
+      --teal: #27ACAA;
+      --blue: #188CE5;
+      --purple: #3D108A;
+      --maroon: #750E5C;
+      --red: #FF4136;
+      --orange: #FF6D00;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(180deg, #f8f8fa 0%, #ececf2 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: var(--ey-off-black);
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+
+    .slide {
+      width: 1080px;
+      min-height: 1920px;
+      background: var(--ey-white);
+      position: relative;
+      overflow: hidden;
+      border: 3px solid var(--ey-black);
+      box-shadow: 0 26px 60px rgba(46,46,56,0.16);
+    }
+
+    .grid-overlay,
+    .blob-1,
+    .blob-2,
+    .blob-3,
+    .right-ribbon,
+    .left-ribbon {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .grid-overlay {
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(196,196,205,0.50) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(196,196,205,0.50) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: 0.35;
+    }
+
+    .blob-1 {
+      width: 340px; height: 340px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,230,0,.78), rgba(255,230,0,.08) 70%);
+      top: -70px; left: -70px;
+    }
+    .blob-2 {
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 40%, rgba(24,140,229,.15), rgba(24,140,229,0) 70%);
+      top: 520px; right: -170px;
+    }
+    .blob-3 {
+      width: 380px; height: 380px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 40%, rgba(61,16,138,.10), rgba(61,16,138,0) 70%);
+      bottom: 80px; left: -140px;
+    }
+
+    .left-ribbon {
+      left: 0; top: 0; width: 18px; height: 100%; background: linear-gradient(180deg, var(--ey-yellow), var(--orange));
+    }
+    .right-ribbon {
+      right: 0; top: 0; width: 10px; height: 100%; background: linear-gradient(180deg, var(--blue), var(--purple));
+    }
+
+    .header {
+      position: relative;
+      z-index: 2;
+      padding: 54px 58px 34px 74px;
+      background: linear-gradient(135deg, rgba(46,46,56,0.98), rgba(46,46,56,0.92));
+      color: var(--ey-white);
+      border-bottom: 4px solid var(--ey-yellow);
+    }
+
+    .ey-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-left: 6px solid var(--ey-yellow);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .headline-row {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 28px;
+      margin-top: 22px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 48px;
+      line-height: 1.08;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+
+    .subtext {
+      margin-top: 16px;
+      max-width: 580px;
+      color: #ECECF2;
+      font-size: 18px;
+      line-height: 1.55;
+      font-weight: 500;
+    }
+
+    .hero-panel {
+      background: var(--ey-white);
+      color: var(--ey-off-black);
+      border: 3px solid var(--ey-black);
+      padding: 20px;
+      box-shadow: 10px 10px 0 var(--ey-yellow);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .hero-top .label {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--ey-gray-01);
+    }
+
+    .hero-stat {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      border: 2px solid var(--ey-black);
+      padding: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    }
+
+    .stat b {
+      display: block; font-size: 26px; color: var(--ey-black); line-height: 1; margin-bottom: 6px;
+    }
+
+    .stat span { font-size: 12px; font-weight: 700; color: var(--ey-gray-01); text-transform: uppercase; }
+
+    .section {
+      position: relative;
+      z-index: 2;
+      padding: 28px 58px 0 74px;
+    }
+
+    .section-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 12px 18px;
+      background: var(--ey-white);
+      border: 2px solid var(--ey-black);
+      box-shadow: 6px 6px 0 var(--ey-gray-02);
+      font-size: 21px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .backbone {
+      position: relative;
+      padding: 30px 30px 26px 30px;
+      border: 3px solid var(--ey-black);
+      background: linear-gradient(180deg, #fffcea 0%, #fff 100%);
+      overflow: hidden;
+    }
+
+    .backbone::before {
+      content: "";
+      position: absolute;
+      left: 35px;
+      right: 35px;
+      top: 50%;
+      height: 8px;
+      background: linear-gradient(90deg, var(--blue), var(--teal), var(--green), var(--orange), var(--red));
+      transform: translateY(-50%);
+      border: 2px solid var(--ey-black);
+      box-shadow: 0 0 0 6px rgba(255,230,0,0.18);
+    }
+
+    .backbone-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .backbone-node {
+      background: rgba(255,255,255,0.96);
+      border: 2px solid var(--ey-black);
+      padding: 18px 12px;
+      text-align: center;
+      min-height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 7px 7px 0 rgba(46,46,56,0.10);
+    }
+
+    .backbone-node i {
+      font-size: 28px; margin-bottom: 10px;
+    }
+    .backbone-node h3 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+      line-height: 1.25;
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+    .backbone-node p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+    }
+
+    .blue { color: var(--blue); }
+    .teal { color: var(--teal); }
+    .green { color: var(--green); }
+    .purple { color: var(--purple); }
+    .orange { color: var(--orange); }
+    .maroon { color: var(--maroon); }
+    .red { color: var(--red); }
+
+    .tiers {
+      position: relative;
+      display: grid;
+      grid-template-rows: repeat(3, auto);
+      gap: 24px;
+      margin-top: 8px;
+    }
+
+    .tier-card {
+      position: relative;
+      border: 3px solid var(--ey-black);
+      background: var(--ey-white);
+      overflow: hidden;
+      box-shadow: 10px 10px 0 var(--ey-gray-02);
+    }
+
+    .tier-card::after {
+      content: "";
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      bottom: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--ey-yellow), rgba(255,230,0,0));
+    }
+
+    .tier-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 22px;
+      color: var(--ey-white);
+      background: var(--ey-off-black);
+      border-bottom: 3px solid var(--ey-black);
+    }
+
+    .tier-icon {
+      width: 56px; height: 56px;
+      border: 2px solid var(--ey-white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .tier-name {
+      font-size: 24px;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+    .tier-name small {
+      display: block;
+      color: var(--ey-yellow);
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+    }
+
+    .tier-badge {
+      padding: 10px 12px;
+      border: 2px solid var(--ey-yellow);
+      color: var(--ey-yellow);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 800;
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .tier-body {
+      padding: 18px 22px 22px;
+      display: grid;
+      grid-template-columns: 0.95fr 1.35fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .capability-panel {
+      border: 2px solid var(--ey-black);
+      padding: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #f7f7fa 100%);
+    }
+
+    .capability-title {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: var(--ey-gray-01);
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .ring {
+      width: 170px;
+      height: 170px;
+      margin: 6px auto 10px;
+      border-radius: 50%;
+      background: conic-gradient(var(--ey-yellow) 0deg 270deg, var(--ey-gray-02) 270deg 360deg);
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ey-black);
+      position: relative;
+    }
+    .ring::before {
+      content: "";
+      width: 112px; height: 112px;
+      border-radius: 50%;
+      background: var(--ey-white);
+      border: 2px solid var(--ey-black);
+      position: absolute;
+    }
+    .ring span {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+    .ring span small {
+      display: block;
+      font-size: 11px;
+      color: var(--ey-gray-01);
+      font-weight: 800;
+      margin-top: 4px;
+      letter-spacing: .8px;
+    }
+
+    .mini-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .mini-box {
+      border: 2px solid var(--ey-black);
+      padding: 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 800;
+      line-height: 1.4;
+      background: #fff;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      align-content: start;
+    }
+
+    .feature {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 12px;
+      border: 2px solid var(--ey-gray-01);
+      background: #fff;
+      min-height: 84px;
+    }
+
+    .feature i {
+      width: 38px; height: 38px;
+      flex: 0 0 38px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ey-black);
+      background: var(--ey-yellow);
+      color: var(--ey-black);
+      font-size: 18px;
+    }
+
+    .feature h4 {
+      margin: 0 0 4px 0;
+      font-size: 13px;
+      text-transform: uppercase;
+      font-weight: 900;
+      line-height: 1.25;
+      color: var(--ey-black);
+    }
+    .feature p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+    }
+
+    .edge-zone {
+      margin-top: 12px;
+      padding-bottom: 48px;
+    }
+
+    .edge-shell {
+      border: 3px solid var(--ey-black);
+      background: linear-gradient(180deg, #fff 0%, #f7f7fb 100%);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .edge-shell::before {
+      content: "";
+      position: absolute;
+      left: 20px; right: 20px; top: 92px;
+      border-top: 5px dashed var(--ey-gray-01);
+      opacity: .85;
+    }
+
+    .edge-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .edge-card {
+      border: 2px solid var(--ey-black);
+      background: var(--ey-white);
+      padding: 16px 12px 14px;
+      text-align: center;
+      min-height: 180px;
+      box-shadow: 6px 6px 0 rgba(46,46,56,0.10);
+    }
+
+    .edge-card .icon-wrap {
+      width: 58px; height: 58px; margin: 0 auto 12px;
+      border-radius: 50%;
+      border: 2px solid var(--ey-black);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      background: linear-gradient(135deg, var(--ey-yellow), #fff7a7);
+    }
+
+    .edge-card h4 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.25;
+    }
+
+    .edge-card p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+    }
+
+    .footer-band {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 18px;
+      background: linear-gradient(90deg, var(--ey-off-black), var(--ey-off-black) 40%, var(--ey-yellow) 40%, var(--ey-yellow) 56%, var(--blue) 56%, var(--purple) 76%, var(--maroon) 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <div class="grid-overlay"></div>
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
+    <div class="blob-3"></div>
+    <div class="left-ribbon"></div>
+    <div class="right-ribbon"></div>
+
+    <header class="header">
+      <div class="ey-tag"><i class="fa-solid fa-shield-halved"></i> EY | Unified Public Safety Stack</div>
+      <div class="headline-row">
+        <div>
+          <h1>Unified Surveillance Architecture</h1>
+          <div class="subtext">
+            A portrait-format, infographic-heavy view of the end-to-end surveillance stack spanning secure backbone connectivity, centralized command tiers, AI-led analytics and heterogeneous edge capture points.
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-top">
+            <div class="label">Architecture Snapshot</div>
+            <i class="fa-solid fa-diagram-project blue" style="font-size:22px;"></i>
+          </div>
+          <div class="hero-stat">
+            <div class="stat"><b>3</b><span>Command Tiers</span></div>
+            <div class="stat"><b>1</b><span>Secure VPN Backbone</span></div>
+            <div class="stat"><b>8+</b><span>Edge Domains</span></div>
+            <div class="stat"><b>24x7</b><span>Monitoring & Response</span></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-title"><i class="fa-solid fa-network-wired orange"></i> Secure Integration Backbone</div>
+      <div class="backbone">
+        <div class="backbone-grid">
+          <div class="backbone-node">
+            <i class="fa-solid fa-link blue"></i>
+            <h3>Redundant Fiber Links</h3>
+            <p>Dual-path circuits for resilience and failover continuity.</p>
+          </div>
+          <div class="backbone-node">
+            <i class="fa-solid fa-lock teal"></i>
+            <h3>MPLS VPN Security</h3>
+            <p>Private routing domain for segregated and reliable transport.</p>
+          </div>
+          <div class="backbone-node">
+            <i class="fa-solid fa-wave-square green"></i>
+            <h3>Always-On Telemetry</h3>
+            <p>Health, heartbeat and service-level visibility across layers.</p>
+          </div>
+          <div class="backbone-node">
+            <i class="fa-solid fa-brain purple"></i>
+            <h3>Analytics Exchange</h3>
+            <p>Metadata, alerts and event streams synchronized centrally.</p>
+          </div>
+          <div class="backbone-node">
+            <i class="fa-solid fa-shield orange"></i>
+            <h3>High Availability</h3>
+            <p>Resilient command continuity for mission-critical operations.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="fa-solid fa-layer-group maroon"></i> Command & Control Tiers</div>
+      <div class="tiers">
+        <article class="tier-card">
+          <div class="tier-head">
+            <div class="tier-icon"><i class="fa-solid fa-building-columns"></i></div>
+            <div class="tier-name">Tier 3: National Command Center<small>Strategic oversight | cross-region visibility</small></div>
+            <div class="tier-badge">Federated Command</div>
+          </div>
+          <div class="tier-body">
+            <div class="capability-panel">
+              <div class="capability-title">Primary Capability Focus</div>
+              <div class="ring"><span>Strategic<br/>Watch<small>National Scope</small></span></div>
+              <div class="mini-metrics">
+                <div class="mini-box">Threat intelligence dashboards</div>
+                <div class="mini-box">Inter-state situational monitoring</div>
+                <div class="mini-box">Unified governance visibility</div>
+                <div class="mini-box">Escalation command workflows</div>
+              </div>
+            </div>
+            <div class="feature-grid">
+              <div class="feature"><i class="fa-solid fa-earth-americas"></i><div><h4>National Integration</h4><p>Aggregated visibility across command geographies and surveillance domains.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-map-location-dot"></i><div><h4>Multi-State Monitoring</h4><p>Centralized event observability and region-level watch capability.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-shield-virus"></i><div><h4>Threat Intelligence</h4><p>Alert fusion, anomaly cues and policy-driven prioritization.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-users-viewfinder"></i><div><h4>Command Operators</h4><p>Operational control for escalation, review and coordinated action.</p></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="tier-card">
+          <div class="tier-head">
+            <div class="tier-icon"><i class="fa-solid fa-building-flag"></i></div>
+            <div class="tier-name">Tier 2: State Command & Control<small>Federated sync | state-wide orchestration</small></div>
+            <div class="tier-badge">AI Correlation Hub</div>
+          </div>
+          <div class="tier-body">
+            <div class="capability-panel">
+              <div class="capability-title">Primary Capability Focus</div>
+              <div class="ring" style="background: conic-gradient(var(--teal) 0deg 255deg, var(--ey-gray-02) 255deg 360deg);"><span>Federated<br/>Control<small>State View</small></span></div>
+              <div class="mini-metrics">
+                <div class="mini-box">State data center backbone</div>
+                <div class="mini-box">VMS federation and orchestration</div>
+                <div class="mini-box">AI analytics correlation engine</div>
+                <div class="mini-box">DR-ready service continuity</div>
+              </div>
+            </div>
+            <div class="feature-grid">
+              <div class="feature"><i class="fa-solid fa-server"></i><div><h4>State Data Center</h4><p>Core hosting zone for command applications, storage and orchestration services.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-sitemap"></i><div><h4>Central VMS Federation</h4><p>Multi-system video consolidation, routing and centralized operational access.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-brain"></i><div><h4>AI Correlation</h4><p>Face, vehicle, event and anomaly insights converged in near real time.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-database"></i><div><h4>DR Integration</h4><p>Business continuity through backup synchronization and disaster recovery readiness.</p></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="tier-card">
+          <div class="tier-head">
+            <div class="tier-icon"><i class="fa-solid fa-city"></i></div>
+            <div class="tier-name">Tier 1: District Monitoring Center<small>Local aggregation | response enablement</small></div>
+            <div class="tier-badge">Operational Edge Hub</div>
+          </div>
+          <div class="tier-body">
+            <div class="capability-panel">
+              <div class="capability-title">Primary Capability Focus</div>
+              <div class="ring" style="background: conic-gradient(var(--orange) 0deg 290deg, var(--ey-gray-02) 290deg 360deg);"><span>Local<br/>Response<small>District Layer</small></span></div>
+              <div class="mini-metrics">
+                <div class="mini-box">VMS aggregation server</div>
+                <div class="mini-box">Edge AI analytics compute</div>
+                <div class="mini-box">Incident management workflows</div>
+                <div class="mini-box">24x7 system health monitoring</div>
+              </div>
+            </div>
+            <div class="feature-grid">
+              <div class="feature"><i class="fa-solid fa-network-wired"></i><div><h4>District VMS Aggregation</h4><p>Localized intake, routing and operational visibility for all district capture streams.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-microchip"></i><div><h4>Edge AI Server</h4><p>Supports fast analytics processing, metadata creation and intelligence generation.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-hard-drive"></i><div><h4>High-Speed Storage</h4><p>Optimized recording, retrieval and evidence support using NAS/SAN repositories.</p></div></div>
+              <div class="feature"><i class="fa-solid fa-user-police"></i><div><h4>Responder Access Portal</h4><p>Actionable incident views for enforcement teams and monitoring staff.</p></div></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section edge-zone">
+      <div class="section-title"><i class="fa-solid fa-video red"></i> Edge Capture Ecosystem</div>
+      <div class="edge-shell">
+        <div class="edge-grid">
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-store"></i></div><h4>Shops & Markets</h4><p>Existing IP cameras, local NVR/DVR and storefront surveillance coverage.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-bag-shopping"></i></div><h4>Shopping Malls</h4><p>High-density cameras with local monitoring and higher public footfall visibility.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-futbol"></i></div><h4>Stadiums</h4><p>PTZ surveillance, crowd observation and event-time operational support.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-building-user"></i></div><h4>Residential Societies</h4><p>Perimeter security, gate-level feeds and standalone local recording systems.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-tree-city"></i></div><h4>Public Areas</h4><p>Open-area surveillance using city cameras and wireless or hybrid links.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-gas-pump"></i></div><h4>Petrol Pumps</h4><p>Critical-site monitoring with edge storage and elevated security considerations.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-traffic-light"></i></div><h4>Traffic Junctions</h4><p>ANPR/RLVD systems with event capture, vehicle flows and rule-based alerts.</p></div>
+          <div class="edge-card"><div class="icon-wrap"><i class="fa-solid fa-industry"></i></div><h4>Industrial Zones</h4><p>Thermal and perimeter monitoring integrated with local VMS environments.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-band"></div>
+  </div>
+</body>
+</html>

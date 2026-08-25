@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EY Style Animated HTML Presentation</title>
+
+  <!-- Icons -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root{
+      --ey-yellow:#FFE600;
+      --ey-grey:#6b6b6b;
+      --ey-light:#f8f8f8;
+      --ey-border:#dddddd;
+      --ey-aqua:#00B8D9;
+      --ey-black:#111111;
+      --ey-white:#ffffff;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:"Segoe UI", Arial, sans-serif;
+      background:var(--ey-white);
+      color:var(--ey-black);
+      overflow:hidden;
+    }
+
+    /* ---------------- GLOBAL UI ---------------- */
+    .nav{
+      position:fixed;
+      top:14px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      gap:10px;
+      z-index:1000;
+    }
+
+    .nav button,
+    .top-right button{
+      border:none;
+      background:#f1f1f1;
+      color:#111;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+      transition:all 0.2s ease;
+    }
+
+    .nav button:hover,
+    .top-right button:hover{
+      transform:translateY(-2px);
+      background:#e9e9e9;
+    }
+
+    .nav button.active-btn{
+      background:var(--ey-yellow);
+    }
+
+    .top-right{
+      position:fixed;
+      top:14px;
+      right:18px;
+      display:flex;
+      gap:10px;
+      z-index:1000;
+    }
+
+    .counter{
+      position:fixed;
+      top:62px;
+      right:18px;
+      z-index:1000;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.96);
+      border:1px solid #ececec;
+      font-size:13px;
+      font-weight:800;
+      color:var(--ey-grey);
+      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .progress-wrap{
+      position:fixed;
+      bottom:0;
+      left:0;
+      width:100%;
+      height:6px;
+      background:#ececec;
+      z-index:1000;
+    }
+
+    .progress-bar{
+      width:0%;
+      height:100%;
+      background:linear-gradient(90deg,var(--ey-yellow),#ffd400);
+      transition:width 0.35s ease;
+    }
+
+    /* ---------------- SLIDES ---------------- */
+    .slide{
+      width:100vw;
+      height:100vh;
+      display:none;
+      position:relative;
+      overflow:hidden;
+      padding:92px 70px 70px 70px;
+      background:var(--ey-white);
+    }
+
+    .slide.active{
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+    }
+
+    .content-wrap{
+      position:relative;
+      z-index:2;
+      width:100%;
+      max-width:1280px;
+      margin:0 auto;
+    }
+
+    h1{
+      font-size:58px;
+      line-height:1.05;
+      margin:0 0 18px 0;
+      letter-spacing:-1px;
+    }
+
+    h2{
+      font-size:38px;
+      line-height:1.15;
+      margin:0 0 12px 0;
+      letter-spacing:-0.4px;
+    }
+
+    h3{
+      margin:0;
+      font-size:22px;
+      line-height:1.2;
+    }
+
+    p{
+      margin:0;
+      line-height:1.5;
+    }
+
+    .yellow{ color:var(--ey-yellow); }
+    .grey{ color:var(--ey-grey); }
+
+    .subtitle{
+      max-width:920px;
+      font-size:20px;
+      line-height:1.5;
+      color:var(--ey-grey);
+      margin:0 auto;
+    }
+
+    .ey-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:#fffceb;
+      border:1px solid #f1e48e;
+      color:#7c7000;
+      padding:8px 14px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:0.2px;
+      margin-bottom:16px;
+      box-shadow:0 6px 18px rgba(255,230,0,0.10);
+    }
+
+    /* ---------------- DECOR ---------------- */
+    .bg-grid{
+      position:absolute;
+      inset:0;
+      background-image:
+        linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size:40px 40px;
+      opacity:0.35;
+      pointer-events:none;
+    }
+
+    .bg-orb{
+      position:absolute;
+      width:320px;
+      height:320px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255,230,0,0.24) 0%, rgba(255,230,0,0.09) 45%, rgba(255,230,0,0) 78%);
+      filter:blur(10px);
+      pointer-events:none;
+      animation:floatOrb 8s ease-in-out infinite;
+    }
+
+    .orb-1{ top:-70px; left:-60px; }
+    .orb-2{ right:-90px; bottom:-80px; animation-delay:2s; }
+
+    @keyframes floatOrb{
+      0%,100%{ transform:translate(0,0); }
+      50%{ transform:translate(14px,18px); }
+    }
+
+    /* ---------------- REVEAL ANIMATION ---------------- */
+    .animate{
+      opacity:0;
+      transform:translateY(26px);
+    }
+
+    .slide.active .animate{
+      animation:riseIn 0.7s ease forwards;
+    }
+
+    .slide.active .delay-1{ animation-delay:0.10s; }
+    .slide.active .delay-2{ animation-delay:0.22s; }
+    .slide.active .delay-3{ animation-delay:0.34s; }
+    .slide.active .delay-4{ animation-delay:0.46s; }
+    .slide.active .delay-5{ animation-delay:0.58s; }
+
+    @keyframes riseIn{
+      from{
+        opacity:0;
+        transform:translateY(26px) scale(0.985);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+      }
+    }
+
+    @keyframes pulseGlow{
+      0%,100%{
+        box-shadow:0 0 0 rgba(255,230,0,0), 0 8px 22px rgba(0,0,0,0.08);
+      }
+      50%{
+        box-shadow:0 0 26px rgba(255,230,0,0.28), 0 8px 22px rgba(0,0,0,0.08);
+      }
+    }
+
+    /* ---------------- SLIDE 1 ---------------- */
+    .hero-title{
+      max-width:1080px;
+    }
+
+    .hero-highlight{
+      display:inline-block;
+      position:relative;
+      padding:0 10px;
+    }
+
+    .hero-highlight::after{
+      content:"";
+      position:absolute;
+      left:8px;
+      right:8px;
+      bottom:6px;
+      height:14px;
+      background:rgba(255,230,0,0.48);
+      z-index:-1;
+      border-radius:5px;
+      animation:pulseGlow 2.8s ease-in-out infinite;
+    }
+
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:14px;
+      margin-top:28px;
+    }
+
+    .pill{
+      background:#f8f8f8;
+      border:1px solid var(--ey-border);
+      border-radius:999px;
+      padding:10px 16px;
+      font-size:14px;
+      font-weight:800;
+      color:#333;
+      box-shadow:0 2px 10px rgba(0,0,0,0.04);
+      transition:all 0.2s ease;
+    }
+
+    .pill:hover{
+      transform:translateY(-2px);
+      box-shadow:0 6px 16px rgba(0,0,0,0.07);
+    }
+
+    /* ---------------- SLIDE 2 ---------------- */
+    .section-head{
+      text-align:center;
+      margin-bottom:28px;
+    }
+
+    .grid-4{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:24px;
+      width:100%;
+      max-width:1120px;
+    }
+
+    .info-card{
+      position:relative;
+      background:linear-gradient(145deg,#ffffff,#f7f7f7);
+      border:1px solid var(--ey-border);
+      border-radius:18px;
+      padding:24px 22px;
+      text-align:left;
+      min-height:230px;
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(0,0,0,0.05);
+      transition:transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .info-card:hover{
+      transform:translateY(-4px);
+      border-color:#d7ca6b;
+      box-shadow:0 12px 28px rgba(0,0,0,0.08);
+    }
+
+    .info-card::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:5px;
+      background:linear-gradient(90deg,var(--ey-yellow),var(--ey-aqua));
+    }
+
+    .card-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      margin-bottom:16px;
+    }
+
+    .icon-box{
+      width:56px;
+      height:56px;
+      border-radius:14px;
+      background:#fffceb;
+      border:1px solid #f2e38a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      color:var(--ey-aqua);
+      box-shadow:0 6px 18px rgba(255,230,0,0.10);
+    }
+
+    .silo-badge{
+      background:#f1f1f1;
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      color:#333;
+    }
+
+    .mini-lines{
+      margin-top:14px;
+      display:grid;
+      gap:8px;
+    }
+
+    .mini-line{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      font-size:14px;
+      color:var(--ey-grey);
+      line-height:1.35;
+    }
+
+    .dot{
+      min-width:8px;
+      width:8px;
+      height:8px;
+      margin-top:5px;
+      border-radius:50%;
+      background:var(--ey-aqua);
+    }
+
+    .impact-chip{
+      display:inline-block;
+      margin-top:14px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#111111;
+      color:#ffffff;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:0.2px;
+    }
+
+    /* ---------------- SLIDE 3 ---------------- */
+    .hub-wrap{
+      position:relative;
+      width:100%;
+      max-width:1120px;
+      height:520px;
+      margin:8px auto 0 auto;
+    }
+
+    .ring{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:410px;
+      height:410px;
+      border-radius:50%;
+      border:1px dashed rgba(0,184,217,0.34);
+      z-index:1;
+      animation:spinSlow 24s linear infinite;
+    }
+
+    @keyframes spinSlow{
+      from{ transform:translate(-50%,-50%) rotate(0deg); }
+      to{ transform:translate(-50%,-50%) rotate(360deg); }
+    }
+
+    .hub{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:290px;
+      min-height:148px;
+      border-radius:20px;
+      background:linear-gradient(145deg,#fff7b2,var(--ey-yellow));
+      border:1px solid #d7c200;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      padding:22px;
+      font-weight:800;
+      text-align:center;
+      box-shadow:0 16px 34px rgba(255,230,0,0.20);
+      animation:pulseGlow 2.8s ease-in-out infinite;
+      z-index:5;
+    }
+
+    .hub small{
+      display:block;
+      margin-top:8px;
+      font-size:13px;
+      line-height:1.4;
+      color:#5f5700;
+      font-weight:700;
+    }
+
+    .connector-svg{
+      position:absolute;
+      inset:0;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .connector{
+      fill:none;
+      stroke:rgba(0,184,217,0.85);
+      stroke-width:3;
+      stroke-linecap:round;
+      stroke-dasharray:8 8;
+      animation:dashMove 12s linear infinite;
+      filter:drop-shadow(0 0 4px rgba(0,184,217,0.16));
+    }
+
+    @keyframes dashMove{
+      to{ stroke-dashoffset:-120; }
+    }
+
+    .node{
+      position:absolute;
+      width:250px;
+      background:#ffffff;
+      border:1px solid var(--ey-border);
+      border-radius:18px;
+      padding:18px 16px 16px 16px;
+      box-shadow:0 10px 24px rgba(0,0,0,0.06);
+      text-align:left;
+      z-index:4;
+      overflow:hidden;
+      transition:transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .node:hover{
+      transform:translateY(-3px);
+      box-shadow:0 14px 28px rgba(0,0,0,0.08);
+    }
+
+    .node::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:4px;
+      background:linear-gradient(90deg,var(--ey-aqua),var(--ey-yellow));
+    }
+
+    .node-head{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .node-icon{
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      background:#f3fcff;
+      border:1px solid #c2eef7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--ey-aqua);
+      font-size:18px;
+      flex-shrink:0;
+    }
+
+    .node-title{
+      font-size:17px;
+      font-weight:800;
+      line-height:1.2;
+    }
+
+    .node-points{
+      display:grid;
+      gap:6px;
+      margin-top:8px;
+    }
+
+    .node-point{
+      display:flex;
+      gap:8px;
+      font-size:13px;
+      line-height:1.35;
+      color:var(--ey-grey);
+    }
+
+    .node-point::before{
+      content:"•";
+      color:var(--ey-yellow);
+      font-weight:900;
+    }
+
+    .top-node{ top:0; left:50%; transform:translateX(-50%); }
+    .right-node{ right:10px; top:50%; transform:translateY(-50%); }
+    .bottom-node{ bottom:0; left:50%; transform:translateX(-50%); }
+    .left-node{ left:10px; top:50%; transform:translateY(-50%); }
+
+    /* ---------------- SLIDE 4 ---------------- */
+    .closing-panel{
+      max-width:1080px;
+      padding:34px 24px;
+      position:relative;
+    }
+
+    .closing-panel::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:-6px;
+      transform:translateX(-50%);
+      width:140px;
+      height:6px;
+      border-radius:999px;
+      background:linear-gradient(90deg,var(--ey-aqua),var(--ey-yellow));
+      animation:pulseGlow 2.8s ease-in-out infinite;
+    }
+
+    .closing-line{
+      font-size:38px;
+      line-height:1.35;
+      font-weight:800;
+      letter-spacing:-0.4px;
+      margin-top:16px;
+    }
+
+    .callout-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:14px;
+      margin-top:28px;
+    }
+
+    .callout{
+      padding:12px 16px;
+      background:#f8f8f8;
+      border:1px solid var(--ey-border);
+      border-radius:999px;
+      font-size:14px;
+      font-weight:800;
+      box-shadow:0 2px 10px rgba(0,0,0,0.04);
+      transition:all 0.2s ease;
+    }
+
+    .callout:hover{
+      transform:translateY(-2px);
+      box-shadow:0 6px 16px rgba(0,0,0,0.07);
+    }
+
+    .closing-footer{
+      position:absolute;
+      right:22px;
+      bottom:18px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:14px;
+      color:var(--ey-grey);
+      font-weight:800;
+    }
+
+    .closing-footer .line{
+      width:46px;
+      height:2px;
+      background:linear-gradient(90deg,var(--ey-aqua),var(--ey-yellow));
+      border-radius:999px;
+    }
+
+    /* ---------------- RESPONSIVE ---------------- */
+    @media (max-width:1100px){
+      .grid-4{
+        max-width:94%;
+      }
+      .hub-wrap{
+        transform:scale(0.92);
+        transform-origin:center center;
+      }
+    }
+
+    @media (max-width:900px){
+      .grid-4{
+        grid-template-columns:1fr;
+      }
+      .hub-wrap{
+        transform:scale(0.72);
+      }
+      h1{ font-size:44px; }
+      h2{ font-size:32px; }
+      .closing-line{ font-size:30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button onclick="goToSlide(0)">1</button>
+    <button onclick="goToSlide(1)">2</button>
+    <button onclick="goToSlide(2)">3</button>
+    <button onclick="goToSlide(3)">4</button>
+  </div>
+
+  <!-- TOP RIGHT -->
+  <div class="top-right">
+    <button onclick="openFullscreen()"><i class="fa-solid fa-expand"></i> Full Screen</button>
+  </div>
+
+  <!-- COUNTER -->
+  <div class="counter" id="counter">1 / 4</div>
+
+  <!-- SLIDE 1 -->
+  <section class="slide active">
+    <div class="bg-grid"></div>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="content-wrap">
+      <div class="ey-tag animate delay-1">
+        <i class="fa-solid fa-chart-line"></i> Strategic Reset Opportunity
+      </div>
+
+      <h1 class="hero-title animate delay-2">
+        The <span class="hero-highlight">Reset Opportunity</span><br>
+        Unified Intelligence &amp; Enforcement Platform
+      </h1>
+
+      <p class="subtitle animate delay-3">
+        Converting existing surveillance, ANPR and traffic infrastructure into a unified
+        intelligence, enforcement, safety and revenue realization engine.
+      </p>
+
+      <div class="pill-row animate delay-4">
+        <div class="pill">Predictive Policing</div>
+        <div class="pill">E-Challan Lifecycle</div>
+        <div class="pill">Unified Data Lake</div>
+        <div class="pill">Highway Safety</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <div class="bg-grid"></div>
+    <div class="bg-orb orb-1"></div>
+
+    <div class="content-wrap">
+      <div class="section-head">
+        <div class="ey-tag animate delay-1">
+          <i class="fa-solid fa-triangle-exclamation"></i> Current State Assessment
+        </div>
+        <h2 class="animate delay-2">Current Landscape &amp; Gap Areas</h2>
+        <p class="subtitle animate delay-3">
+          Current systems operate as isolated silos, reducing intelligence conversion,
+          enforcement efficiency, investigation speed and predictive response.
+        </p>
+      </div>
+
+      <div class="grid-4">
+        <div class="info-card animate delay-2">
+          <div class="card-top">
+            <div class="icon-box"><i class="fas fa-shield-alt"></i></div>
+            <div class="silo-badge">SILO 01</div>
+          </div>
+          <h3>Reactive Policing</h3>
+          <div class="mini-lines">
+            <div class="mini-line"><span class="dot"></span>Metadata generated but underutilized</div>
+            <div class="mini-line"><span class="dot"></span>Limited hotspot and pattern detection</div>
+            <div class="mini-line"><span class="dot"></span>Response remains post-incident driven</div>
+          </div>
+          <div class="impact-chip">Reactive vs Predictive</div>
+        </div>
+
+        <div class="info-card animate delay-3">
+          <div class="card-top">
+            <div class="icon-box"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="silo-badge">SILO 02</div>
+          </div>
+          <h3>Fragmented E-Challan</h3>
+          <div class="mini-lines">
+            <div class="mini-line"><span class="dot"></span>Disconnected generation, payment and closure</div>
+            <div class="mini-line"><span class="dot"></span>No complete field feedback loop</div>
+            <div class="mini-line"><span class="dot"></span>Revenue realization remains delayed</div>
+          </div>
+          <div class="impact-chip">Leakage in Enforcement Cycle</div>
+        </div>
+
+        <div class="info-card animate delay-4">
+          <div class="card-top">
+            <div class="icon-box"><i class="fas fa-database"></i></div>
+            <div class="silo-badge">SILO 03</div>
+          </div>
+          <h3>Siloed Investigation Data</h3>
+          <div class="mini-lines">
+            <div class="mini-line"><span class="dot"></span>Separate access across government datasets</div>
+            <div class="mini-line"><span class="dot"></span>Single view of person/vehicle absent</div>
+            <div class="mini-line"><span class="dot"></span>Case linkage and traceability slow</div>
+          </div>
+          <div class="impact-chip">Delayed Case Linkage</div>
+        </div>
+
+        <div class="info-card animate delay-5">
+          <div class="card-top">
+            <div class="icon-box"><i class="fas fa-road"></i></div>
+            <div class="silo-badge">SILO 04</div>
+          </div>
+          <h3>Monitoring-Only Highways</h3>
+          <div class="mini-lines">
+            <div class="mini-line"><span class="dot"></span>Limited predictive safety enforcement</div>
+            <div class="mini-line"><span class="dot"></span>Partial corridor-level tracking integration</div>
+            <div class="mini-line"><span class="dot"></span>Incident alerts and response not unified</div>
+          </div>
+          <div class="impact-chip">Visibility without Prediction</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <div class="bg-grid"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="content-wrap">
+      <div class="section-head">
+        <div class="ey-tag animate delay-1">
+          <i class="fa-solid fa-bolt"></i> Unified Reset Architecture
+        </div>
+        <h2 class="animate delay-2">Platform-Led Outcomes</h2>
+        <p class="subtitle animate delay-3">
+          A hub-and-spoke operating model unifies intelligence, enforcement, investigation
+          and mobility safety into a connected decision and action layer.
+        </p>
+      </div>
+
+      <div class="hub-wrap animate delay-4">
+        <div class="ring"></div>
+
+        <svg class="connector-svg" viewBox="0 0 1120 520" preserveAspectRatio="none">
+          <path class="connector" d="M560 182 L560 108" />
+          <path class="connector" d="M705 260 L860 260" />
+          <path class="connector" d="M560 338 L560 416" />
+          <path class="connector" d="M415 260 L260 260" />
+        </svg>
+
+        <div class="hub">
+          Unified Intelligence &amp;<br>Enforcement Platform
+          <small>Single command layer for prevention, investigation, compliance and response</small>
+        </div>
+
+        <div class="node top-node">
+          <div class="node-head">
+            <div class="node-icon"><i class="fas fa-shield-alt"></i></div>
+            <div class="node-title">Proactive &amp; Predictive Policing</div>
+          </div>
+          <div class="node-points">
+            <div class="node-point">Convert metadata into actionable intelligence</div>
+            <div class="node-point">Identify hotspots and suspect patterns</div>
+            <div class="node-point">Move from monitoring to prevention</div>
+          </div>
+        </div>
+
+        <div class="node right-node">
+          <div class="node-head">
+            <div class="node-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="node-title">Complete E-Challan Lifecycle</div>
+          </div>
+          <div class="node-points">
+            <div class="node-point">Automated generation to final closure</div>
+            <div class="node-point">Real-time defaulter visibility for field teams</div>
+            <div class="node-point">Measurable recovery of pending revenue</div>
+          </div>
+        </div>
+
+        <div class="node bottom-node">
+          <div class="node-head">
+            <div class="node-icon"><i class="fas fa-database"></i></div>
+            <div class="node-title">Centralized Investigation Data Lake</div>
+          </div>
+          <div class="node-points">
+            <div class="node-point">Unified view of person, vehicle and location</div>
+            <div class="node-point">Rapid cross-search and case linkage</div>
+            <div class="node-point">Single intelligence layer for agencies</div>
+          </div>
+        </div>
+
+        <div class="node left-node">
+          <div class="node-head">
+            <div class="node-icon"><i class="fas fa-road"></i></div>
+            <div class="node-title">Predictive Highway Safety</div>
+          </div>
+          <div class="node-points">
+            <div class="node-point">Speed and wrong-way detection in real time</div>
+            <div class="node-point">Corridor-level vehicle tracking</div>
+            <div class="node-point">Automated incident alerts for quick response</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide">
+    <div class="bg-grid"></div>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="content-wrap">
+      <div class="closing-panel animate delay-2">
+        <div class="ey-tag animate delay-1">
+          <i class="fa-solid fa-flag-checkered"></i> Executive Vision
+        </div>
+
+        <div class="closing-line">
+          <span class="grey">The reset opportunity is to convert existing surveillance, ANPR and traffic infrastructure into a</span>
+          <br><br>
+          <span>unified intelligence, enforcement, safety and revenue realization platform.</span>
+        </div>
+
+        <div class="callout-row animate delay-4">
+          <div class="callout">Intelligence-led operations</div>
+          <div class="callout">End-to-end enforcement</div>
+          <div class="callout">Unified data visibility</div>
+          <div class="callout">Safer corridors &amp; faster response</div>
+        </div>
+      </div>
+
+      <div class="closing-footer animate delay-5">
+        <div class="line"></div>
+        <div>Thank You / Q&amp;A</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      let index = 0;
+      const slides = document.querySelectorAll(".slide");
+      const buttons = document.querySelectorAll(".nav button");
+      const progressBar = document.getElementById("progressBar");
+      const counter = document.getElementById("counter");
+
+      function updateUI() {
+        slides.forEach(slide => slide.classList.remove("active"));
+        buttons.forEach(button => button.classList.remove("active-btn"));
+
+        slides[index].classList.add("active");
+        buttons[index].classList.add("active-btn");
+        counter.textContent = (index + 1) + " / " + slides.length;
+        progressBar.style.width = ((index + 1) / slides.length) * 100 + "%";
+      }
+
+      window.goToSlide = function (i) {
+        index = i;
+        updateUI();
+      };
+
+      function nextSlide() {
+        index++;
+        if (index >= slides.length) index = 0;
+        updateUI();
+      }
+
+      function prevSlide() {
+        index--;
+        if (index < 0) index = slides.length - 1;
+        updateUI();
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight") nextSlide();
+        if (e.key === "ArrowLeft") prevSlide();
+        if (e.key === "f" || e.key === "F") openFullscreen();
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest("button")) {
+          nextSlide();
+        }
+      });
+
+      window.openFullscreen = function () {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        }
+      };
+
+      updateUI();
+    });
+  </script>
+</body>
+</html>

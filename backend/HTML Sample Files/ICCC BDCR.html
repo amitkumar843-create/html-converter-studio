@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDCR with ICCC Integration – Surveillance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --ey-yellow: #FFE600;
+    --ey-yellow-dark: #E6CF00;
+    --ey-charcoal: #2E2E38;
+    --ey-charcoal-light: #3E3E4A;
+    --ey-purple: #64648C;
+    --ey-purple-light: #8E8EB0;
+    --ey-blue: #0075C9;
+    --ey-blue-light: #40A0E0;
+    --ey-teal: #00A4B4;
+    --ey-gray: #B0B0C0;
+    --ey-gray-light: #E8E8EC;
+    --ey-white: #FFFFFF;
+    --ey-dark: #1A1A24;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--ey-charcoal);
+    color: var(--ey-white);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .presentation {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .slide.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  /* ===== NAV BAR ===== */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(30,30,40,0.95);
+    backdrop-filter: blur(12px);
+    border-top: 2px solid var(--ey-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 32px;
+  }
+
+  .nav-bar .nav-left { display:flex; align-items:center; gap:16px; }
+  .nav-bar .nav-center { display:flex; align-items:center; gap:8px; }
+  .nav-bar .nav-right { display:flex; align-items:center; gap:16px; font-size:13px; color: var(--ey-gray); }
+
+  .nav-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--ey-white);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: var(--ey-yellow); color: var(--ey-charcoal); border-color: var(--ey-yellow); }
+
+  .slide-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+  }
+  .slide-dot.active { background: var(--ey-yellow); transform: scale(1.3); }
+  .slide-dot:hover { background: var(--ey-yellow-dark); }
+
+  /* ===== SLIDE CONTENT ===== */
+  .slide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px 0 48px;
+    flex-shrink: 0;
+  }
+
+  .ey-logo {
+    font-weight: 900;
+    font-size: 24px;
+    color: var(--ey-yellow);
+    letter-spacing: -0.5px;
+  }
+  .ey-logo span { color: var(--ey-white); font-weight: 400; font-size: 14px; margin-left: 8px; vertical-align: middle; }
+
+  .slide-badge {
+    background: rgba(255,230,0,0.1);
+    border: 1px solid rgba(255,230,0,0.3);
+    color: var(--ey-yellow);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .slide-body {
+    flex: 1;
+    padding: 32px 48px 80px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .slide-body::-webkit-scrollbar { width: 4px; }
+  .slide-body::-webkit-scrollbar-track { background: transparent; }
+  .slide-body::-webkit-scrollbar-thumb { background: var(--ey-purple); border-radius: 4px; }
+
+  /* ===== TITLE SLIDE ===== */
+  .title-slide {
+    background: linear-gradient(135deg, var(--ey-dark) 0%, var(--ey-charcoal) 40%, #1a1a3a 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .title-slide::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    right: -200px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(255,230,0,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .title-slide::after {
+    content: '';
+    position: absolute;
+    bottom: -300px;
+    left: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,117,201,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .title-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .title-ey-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--ey-yellow);
+    border-radius: 2px;
+  }
+
+  .title-main {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    color: var(--ey-white);
+  }
+  .title-main .highlight { color: var(--ey-yellow); }
+
+  .title-sub {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--ey-gray);
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .title-meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 16px;
+  }
+  .title-meta-item {
+    font-size: 12px;
+    color: var(--ey-purple-light);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  /* ===== GRID LAYOUTS ===== */
+  .content-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .content-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+  .content-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ===== CARD ===== */
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 28px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    border-color: rgba(255,230,0,0.3);
+    background: rgba(255,255,255,0.06);
+    transform: translateY(-2px);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--ey-yellow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,230,0,0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: var(--ey-yellow);
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--ey-white);
+  }
+  .card-text {
+    font-size: 13px;
+    color: var(--ey-gray);
+    line-height: 1.6;
+  }
+
+  /* ===== SECTION TITLE ===== */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ey-yellow);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+  .section-subtitle {
+    font-size: 15px;
+    color: var(--ey-gray);
+    font-weight: 300;
+    margin-bottom: 32px;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  /* ===== ARCHITECTURE DIAGRAM ===== */
+  .arch-container {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+  }
+
+  .arch-layer {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .arch-layer-label {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ey-yellow);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .arch-box {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ey-white);
+    transition: all 0.3s;
+    cursor: default;
+  }
+  .arch-box:hover {
+    border-color: var(--ey-yellow);
+    background: rgba(255,230,0,0.06);
+  }
+  .arch-box.primary {
+    background: rgba(255,230,0,0.1);
+    border-color: rgba(255,230,0,0.3);
+    color: var(--ey-yellow);
+  }
+  .arch-box .arch-sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ey-gray);
+    margin-top: 4px;
+  }
+
+  .arch-arrow {
+    text-align: center;
+    color: var(--ey-yellow);
+    font-size: 18px;
+    padding: 4px 0;
+    opacity: 0.5;
+  }
+
+  /* ===== FLOW DIAGRAM ===== */
+  .flow-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .flow-step {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px 24px;
+    text-align: center;
+    min-width: 140px;
+    transition: all 0.3s;
+  }
+  .flow-step:hover {
+    border-color: var(--ey-yellow);
+    transform: scale(1.03);
+  }
+  .flow-step .flow-icon {
+    color: var(--ey-yellow);
+    margin-bottom: 10px;
+  }
+  .flow-step .flow-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .flow-step .flow-desc {
+    font-size: 10px;
+    color: var(--ey-gray);
+    margin-top: 4px;
+  }
+  .flow-arrow {
+    color: var(--ey-yellow);
+    font-size: 20px;
+    opacity: 0.6;
+  }
+
+  /* ===== METRIC BOX ===== */
+  .metric-box {
+    text-align: center;
+    padding: 24px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    transition: all 0.3s;
+  }
+  .metric-box:hover { border-color: rgba(255,230,0,0.3); }
+  .metric-value {
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--ey-yellow);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .metric-label {
+    font-size: 12px;
+    color: var(--ey-gray);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ===== TIMELINE ===== */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--ey-yellow), var(--ey-purple), transparent);
+  }
+  .timeline-item {
+    position: relative;
+    padding: 16px 0 16px 24px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 22px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--ey-yellow);
+    border: 3px solid var(--ey-charcoal);
+  }
+  .timeline-phase {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ey-yellow);
+    margin-bottom: 4px;
+  }
+  .timeline-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .timeline-desc {
+    font-size: 13px;
+    color: var(--ey-gray);
+    line-height: 1.5;
+  }
+
+  /* ===== LIST ===== */
+  .feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.5;
+  }
+  .feature-list .check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,230,0,0.15);
+    color: var(--ey-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ===== TABLE ===== */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    background: rgba(255,230,0,0.08);
+    color: var(--ey-yellow);
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid rgba(255,230,0,0.2);
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.8);
+  }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-badge.active { background: rgba(0,180,100,0.15); color: #00b464; }
+  .status-badge.pending { background: rgba(255,230,0,0.15); color: var(--ey-yellow); }
+  .status-badge.planned { background: rgba(100,100,140,0.2); color: var(--ey-purple-light); }
+
+  /* ===== USE CASE CARD ===== */
+  .usecase-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    gap: 20px;
+    transition: all 0.3s;
+    align-items: flex-start;
+  }
+  .usecase-card:hover {
+    border-color: rgba(255,230,0,0.25);
+    background: rgba(255,255,255,0.05);
+  }
+  .usecase-num {
+    font-size: 36px;
+    font-weight: 900;
+    color: rgba(255,230,0,0.2);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .usecase-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .usecase-desc {
+    font-size: 13px;
+    color: var(--ey-gray);
+    line-height: 1.6;
+  }
+  .usecase-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ey-blue-light);
+    background: rgba(0,117,201,0.1);
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== ICCC DASHBOARD MOCK ===== */
+  .dashboard-mock {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+    min-height: 340px;
+  }
+  .dash-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .dash-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ey-yellow);
+  }
+  .dash-live {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #00b464;
+    font-weight: 600;
+  }
+  .dash-live .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: #00b464;
+    animation: pulse-anim 1.5s infinite;
+  }
+  @keyframes pulse-anim {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.5); }
+  }
+
+  .dash-panel {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 12px;
+  }
+  .dash-panel-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ey-gray);
+    margin-bottom: 12px;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 11px;
+  }
+  .alert-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .alert-dot.red { background: #ff4444; }
+  .alert-dot.yellow { background: var(--ey-yellow); }
+  .alert-dot.green { background: #00b464; }
+
+  .dash-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .radar-ring {
+    position: absolute;
+    border: 1px solid rgba(255,230,0,0.1);
+    border-radius: 50%;
+    animation: radar-pulse 3s infinite;
+  }
+  .radar-ring:nth-child(1) { width: 80px; height: 80px; animation-delay: 0s; }
+  .radar-ring:nth-child(2) { width: 150px; height: 150px; animation-delay: 0.5s; }
+  .radar-ring:nth-child(3) { width: 220px; height: 220px; animation-delay: 1s; }
+  .radar-ring:nth-child(4) { width: 290px; height: 290px; animation-delay: 1.5s; }
+  @keyframes radar-pulse {
+    0%,100% { opacity: 0.3; border-color: rgba(255,230,0,0.1); }
+    50% { opacity: 1; border-color: rgba(255,230,0,0.4); }
+  }
+  .radar-center-icon {
+    position: relative;
+    z-index: 2;
+    color: var(--ey-yellow);
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+  }
+  .stat-row .label { color: var(--ey-gray); }
+  .stat-row .value { font-weight: 700; }
+
+  /* ===== BAR CHART ===== */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 140px;
+    padding-top: 12px;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .bar {
+    width: 100%;
+    max-width: 40px;
+    background: linear-gradient(to top, var(--ey-yellow), rgba(255,230,0,0.4));
+    border-radius: 4px 4px 0 0;
+    transition: height 1s ease;
+  }
+  .bar-label {
+    font-size: 10px;
+    color: var(--ey-gray);
+    font-weight: 500;
+  }
+
+  /* ===== PROGRESS ===== */
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.5s ease;
+  }
+
+  /* ===== TWO COLUMN TEXT ===== */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  /* ===== KEY VALUE ===== */
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .kv-label { font-size: 13px; color: var(--ey-gray); }
+  .kv-value { font-size: 14px; font-weight: 700; }
+
+  /* ===== ICON FEATURE GRID ===== */
+  .icon-feature {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .icon-feature:last-child { border-bottom: none; }
+  .icon-feature .if-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(255,230,0,0.08);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ey-yellow); flex-shrink: 0;
+  }
+  .icon-feature .if-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .icon-feature .if-desc { font-size: 12px; color: var(--ey-gray); line-height: 1.5; }
+
+  /* ===== THANK YOU ===== */
+  .thankyou-slide {
+    background: linear-gradient(135deg, var(--ey-dark) 0%, var(--ey-charcoal) 50%, #1a1a3a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .thankyou-slide::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(255,230,0,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .thankyou-content { position: relative; z-index: 2; }
+  .thankyou-title {
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--ey-yellow);
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+  .thankyou-sub {
+    font-size: 18px;
+    color: var(--ey-gray);
+    font-weight: 300;
+    margin-bottom: 32px;
+  }
+  .thankyou-contacts {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .contact-item {
+    font-size: 13px;
+    color: var(--ey-purple-light);
+  }
+  .contact-item strong { color: var(--ey-white); display: block; margin-bottom: 2px; }
+
+  /* ===== ANIMATIONS ===== */
+  .fade-in {
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+  .slide-in-left {
+    animation: slideInLeft 0.6s ease forwards;
+    opacity: 0;
+  }
+  @keyframes slideInLeft {
+    from { transform: translateX(-40px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .content-grid-3, .content-grid-4 { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; gap: 24px; }
+    .dashboard-mock { grid-template-columns: 1fr; }
+    .title-main { font-size: 36px; }
+    .section-title { font-size: 28px; }
+    .slide-body { padding: 24px 24px 80px 24px; }
+    .slide-header { padding: 16px 24px 0 24px; }
+  }
+  @media (max-width: 600px) {
+    .content-grid-2, .content-grid-3, .content-grid-4 { grid-template-columns: 1fr; }
+    .flow-container { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+    .title-main { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="presentation" id="presentation">
+
+  <!-- ==================== SLIDE 1: TITLE ==================== -->
+  <div class="slide title-slide active" data-slide="0">
+    <div class="slide-header">
+      <div class="ey-logo">EY<span>Building a better working world</span></div>
+      <div class="slide-badge">Confidential</div>
+    </div>
+    <div class="slide-body">
+      <div class="title-content">
+        <div class="title-ey-bar"></div>
+        <div class="title-main">
+          BDCR <span class="highlight">with ICCC</span><br>Integration
+        </div>
+        <div class="title-sub">
+          Big Data Correlation Engine for Intelligent Surveillance —<br>
+          Integrated Command & Control Centre for real-time threat detection, correlation, and response orchestration.
+        </div>
+        <div class="title-meta">
+          <div class="title-meta-item">Surveillance Platform</div>
+          <div class="title-meta-item">v2.0 Architecture</div>
+          <div class="title-meta-item">EY Advisory</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 2: AGENDA ==================== -->
+  <div class="slide" data-slide="1" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">Agenda</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Overview</div>
+      <div class="section-title">Agenda</div>
+      <div class="section-subtitle">Key topics covered in this presentation</div>
+      <div class="content-grid-2" style="max-width:800px;">
+        <div class="card slide-in-left stagger-1" style="cursor:pointer;" onclick="goToSlide(2)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">01</div>
+            <div>
+              <div class="card-title">What is BDCR?</div>
+              <div class="card-text">Core definition and purpose</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-2" style="cursor:pointer;" onclick="goToSlide(3)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">02</div>
+            <div>
+              <div class="card-title">Key Capabilities</div>
+              <div class="card-text">Engine features & processing</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-3" style="cursor:pointer;" onclick="goToSlide(4)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">03</div>
+            <div>
+              <div class="card-title">ICCC Integration</div>
+              <div class="card-text">Architecture & data flow</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-4" style="cursor:pointer;" onclick="goToSlide(5)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">04</div>
+            <div>
+              <div class="card-title">ICCC Dashboard</div>
+              <div class="card-text">Live command centre view</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-5" style="cursor:pointer;" onclick="goToSlide(6)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">05</div>
+            <div>
+              <div class="card-title">Surveillance Use Cases</div>
+              <div class="card-text">Real-world scenarios</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-6" style="cursor:pointer;" onclick="goToSlide(7)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">06</div>
+            <div>
+              <div class="card-title">Data Sources & Correlation</div>
+              <div class="card-text">Multi-source intelligence</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-5" style="cursor:pointer;" onclick="goToSlide(8)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">07</div>
+            <div>
+              <div class="card-title">Technology Stack</div>
+              <div class="card-text">Infrastructure & tools</div>
+            </div>
+          </div>
+        </div>
+        <div class="card slide-in-left stagger-6" style="cursor:pointer;" onclick="goToSlide(9)">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;font-weight:900;color:rgba(255,230,0,0.2);">08</div>
+            <div>
+              <div class="card-title">Implementation & ROI</div>
+              <div class="card-text">Roadmap and benefits</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 3: WHAT IS BDCR ==================== -->
+  <div class="slide" data-slide="2" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">01 · Overview</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Understanding the Engine</div>
+      <div class="section-title">What is BDCR?</div>
+      <div class="section-subtitle">Big Data Correlation Engine — the brain behind intelligent surveillance</div>
+      <div class="two-col">
+        <div>
+          <p style="font-size:15px;line-height:1.8;color:rgba(255,255,255,0.8);margin-bottom:24px;">
+            The <strong style="color:var(--ey-yellow);">Big Data Correlation Engine (BDCR)</strong> is a high-performance analytics platform designed to ingest, process, and correlate massive volumes of heterogeneous surveillance data in real time.
+          </p>
+          <p style="font-size:15px;line-height:1.8;color:rgba(255,255,255,0.8);margin-bottom:24px;">
+            It transforms raw data from CCTV feeds, IoT sensors, communication intercepts, social media, and transactional systems into <strong style="color:var(--ey-yellow);">actionable intelligence</strong> through advanced correlation algorithms and machine learning.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check"><i data-lucide="check" style="width:12px;height:12px;"></i></span>Real-time multi-source data correlation</li>
+            <li><span class="check"><i data-lucide="check" style="width:12px;height:12px;"></i></span>Pattern detection across petabyte-scale datasets</li>
+            <li><span class="check"><i data-lucide="check" style="width:12px;height:12px;"></i></span>Automated threat scoring and alerting</li>
+            <li><span class="check"><i data-lucide="check" style="width:12px;height:12px;"></i></span>Seamless ICCC integration for unified command</li>
+          </ul>
+        </div>
+        <div>
+          <div class="content-grid-2" style="gap:16px;">
+            <div class="metric-box">
+              <div class="metric-value">50+</div>
+              <div class="metric-label">Data Sources</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">&lt;2s</div>
+              <div class="metric-label">Correlation Latency</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">99.7%</div>
+              <div class="metric-label">Detection Accuracy</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">10PB+</div>
+              <div class="metric-label">Daily Throughput</div>
+            </div>
+          </div>
+          <div style="margin-top:20px;padding:20px;background:rgba(255,230,0,0.04);border:1px solid rgba(255,230,0,0.15);border-radius:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--ey-yellow);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Core Principle</div>
+            <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;">
+              "Connect the dots before the picture emerges" — proactive correlation over reactive analysis.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 4: KEY CAPABILITIES ==================== -->
+  <div class="slide" data-slide="3" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">02 · Capabilities</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Engine Power</div>
+      <div class="section-title">Key Capabilities</div>
+      <div class="section-subtitle">Six pillars of the BDCR correlation engine</div>
+      <div class="content-grid-3">
+        <div class="card">
+          <div class="card-icon"><i data-lucide="workflow" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">Multi-Source Ingestion</div>
+          <div class="card-text">Parallel ingestion from CCTV, sensors, OSINT, COMINT, financial feeds, and biometric systems via Apache Kafka streams.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i data-lucide="git-merge" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">Real-Time Correlation</div>
+          <div class="card-text">Graph-based correlation engine linking entities, events, and patterns across data sources within sub-second latency.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i data-lucide="brain" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">AI/ML Analytics</div>
+          <div class="card-text">Anomaly detection, behavioral analysis, predictive modeling, and NLP for unstructured data processing.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i data-lucide="shield-alert" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">Threat Scoring</div>
+          <div class="card-text">Dynamic risk scoring algorithm combining entity reputation, pattern matching, and geospatial context for automated alerting.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i data-lucide="database" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">Data Lake Architecture</div>
+          <div class="card-text">Multi-tier storage (hot/warm/cold) with Delta Lake, supporting both real-time and batch analytical workloads.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i data-lucide="monitor" style="width:22px;height:22px;"></i></div>
+          <div class="card-title">ICCC API Gateway</div>
+          <div class="card-text">RESTful & WebSocket APIs for bidirectional communication with ICCC dashboards, alert panels, and response systems.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 5: ICCC ARCHITECTURE ==================== -->
+  <div class="slide" data-slide="4" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">03 · Architecture</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">System Design</div>
+      <div class="section-title">ICCC Integration Architecture</div>
+      <div class="section-subtitle">End-to-end data flow from source to action</div>
+
+      <div class="arch-container">
+        <!-- Data Sources Layer -->
+        <div class="arch-layer">
+          <div class="arch-layer-label">Sources</div>
+          <div class="arch-box">CCTV / Video Feeds<div class="arch-sub">RTSP, ONVIF</div></div>
+          <div class="arch-box">IoT Sensors<div class="arch-sub">MQTT, CoAP</div></div>
+          <div class="arch-box">COMINT / SIGINT<div class="arch-sub">Intercepts</div></div>
+          <div class="arch-box">OSINT<div class="arch-sub">Social, Web</div></div>
+          <div class="arch-box">Financial<div class="arch-sub">Transactions</div></div>
+          <div class="arch-box">Biometrics<div class="arch-sub">AFIS, FaceID</div></div>
+        </div>
+
+        <div class="arch-arrow">▼ ▼ ▼ ▼ ▼ ▼</div>
+
+        <!-- Ingestion Layer -->
+        <div class="arch-layer">
+          <div class="arch-layer-label">Ingest</div>
+          <div class="arch-box primary" style="flex:3;">Apache Kafka — Real-Time Event Streaming<div class="arch-sub">10M+ events/sec · Schema Registry · CDC</div></div>
+          <div class="arch-box" style="flex:1;">Apache NiFi<div class="arch-sub">ETL Pipelines</div></div>
+        </div>
+
+        <div class="arch-arrow">▼</div>
+
+        <!-- Processing Layer -->
+        <div class="arch-layer">
+          <div class="arch-layer-label">Process</div>
+          <div class="arch-box primary" style="flex:2;">BDCR Correlation Engine<div class="arch-sub">Apache Spark · GraphX · MLlib · Rule Engine</div></div>
+          <div class="arch-box" style="flex:1;">Apache Flink<div class="arch-sub">Stream Processing</div></div>
+          <div class="arch-box" style="flex:1;">Neo4j<div class="arch-sub">Entity Graph</div></div>
+        </div>
+
+        <div class="arch-arrow">▼</div>
+
+        <!-- Storage Layer -->
+        <div class="arch-layer">
+          <div class="arch-layer-label">Store</div>
+          <div class="arch-box" style="flex:1;">Delta Lake<div class="arch-sub">Hot Tier</div></div>
+          <div class="arch-box" style="flex:1;">Hadoop HDFS<div class="arch-sub">Warm Tier</div></div>
+          <div class="arch-box" style="flex:1;">S3 / Object<div class="arch-sub">Cold Tier</div></div>
+          <div class="arch-box" style="flex:1;">Elasticsearch<div class="arch-sub">Search Index</div></div>
+        </div>
+
+        <div class="arch-arrow">▼</div>
+
+        <!-- ICCC Layer -->
+        <div class="arch-layer">
+          <div class="arch-layer-label">ICCC</div>
+          <div class="arch-box primary" style="flex:2;">ICCC Command Dashboard<div class="arch-sub">Real-Time Visualization · Alert Console · GIS Map</div></div>
+          <div class="arch-box" style="flex:1;">Response Ops<div class="arch-sub">Automated Playbooks</div></div>
+          <div class="arch-box" style="flex:1;">Reporting<div class="arch-sub">BI & Analytics</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 6: ICCC DASHBOARD ==================== -->
+  <div class="slide" data-slide="5" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">04 · Dashboard</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Command Centre</div>
+      <div class="section-title">ICCC Live Dashboard</div>
+      <div class="section-subtitle">Unified view for surveillance monitoring and response</div>
+
+      <div class="dashboard-mock">
+        <div class="dash-header">
+          <div class="dash-title">ICCC Command Centre — Live</div>
+          <div class="dash-live"><div class="pulse"></div> LIVE FEED</div>
+        </div>
+
+        <!-- Left Panel: Alerts -->
+        <div class="dash-panel">
+          <div class="dash-panel-title">Active Alerts</div>
+          <div class="alert-item"><div class="alert-dot red"></div> Perimeter breach — Zone 4A</div>
+          <div class="alert-item"><div class="alert-dot red"></div> Unidentified vehicle — Gate 2</div>
+          <div class="alert-item"><div class="alert-dot yellow"></div> Loitering detected — Bldg 7</div>
+          <div class="alert-item"><div class="alert-dot yellow"></div> Comms anomaly — Sector 3</div>
+          <div class="alert-item"><div class="alert-dot green"></div> Routine patrol — Zone 1 ✓</div>
+          <div class="alert-item"><div class="alert-dot green"></div> Sensor health OK — All ✓</div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+            <div class="stat-row"><span class="label">Critical</span><span class="value" style="color:#ff4444;">2</span></div>
+            <div class="stat-row"><span class="label">Warning</span><span class="value" style="color:var(--ey-yellow);">2</span></div>
+            <div class="stat-row"><span class="label">Info</span><span class="value" style="color:#00b464;">2</span></div>
+          </div>
+        </div>
+
+        <!-- Center: Radar -->
+        <div class="dash-center">
+          <div class="radar-ring"></div>
+          <div class="radar-ring"></div>
+          <div class="radar-ring"></div>
+          <div class="radar-ring"></div>
+          <div class="radar-center-icon"><i data-lucide="scan" style="width:40px;height:40px;"></i></div>
+        </div>
+
+        <!-- Right Panel: Stats -->
+        <div class="dash-panel">
+          <div class="dash-panel-title">System Status</div>
+          <div class="stat-row"><span class="label">Feeds Active</span><span class="value">1,247</span></div>
+          <div class="stat-row"><span class="label">Events/sec</span><span class="value" style="color:var(--ey-yellow);">42.3K</span></div>
+          <div class="stat-row"><span class="label">Correlations</span><span class="value">8,941</span></div>
+          <div class="stat-row"><span class="label">Uptime</span><span class="value" style="color:#00b464;">99.98%</span></div>
+          <div style="margin-top:12px;">
+            <div class="dash-panel-title">Threat Level</div>
+            <div style="text-align:center;font-size:28px;font-weight:900;color:var(--ey-yellow);margin:4px 0;">ELEVATED</div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:65%;background:linear-gradient(to right,#00b464,var(--ey-yellow),#ff4444);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 7: USE CASES ==================== -->
+  <div class="slide" data-slide="6" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">05 · Use Cases</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Real-World Applications</div>
+      <div class="section-title">Surveillance Use Cases</div>
+      <div class="section-subtitle">How BDCR + ICCC deliver mission-critical intelligence</div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="usecase-card">
+          <div class="usecase-num">01</div>
+          <div>
+            <div class="usecase-title">Perimeter Intrusion Detection</div>
+            <div class="usecase-desc">Correlates CCTV motion detection, thermal sensor alerts, and seismic fence data to eliminate false positives and validate real intrusion events. Auto-triggers ICCC response playbook.</div>
+            <div class="usecase-tag">Critical Infrastructure</div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <div class="usecase-num">02</div>
+          <div>
+            <div class="usecase-title">Suspicious Behavior Pattern Recognition</div>
+            <div class="usecase-desc">ML models detect loitering, repeated visits, unusual dwell times, and coordinated movements across camera networks. Correlated with watchlist data for priority scoring.</div>
+            <div class="usecase-tag">Urban Surveillance</div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <div class="usecase-num">03</div>
+          <div>
+            <div class="usecase-title">Multi-Entity Correlation Tracking</div>
+            <div class="usecase-desc">Links persons of interest across communication intercepts, financial transactions, travel records, and social media to build comprehensive activity profiles in real time.</div>
+            <div class="usecase-tag">National Security</div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <div class="usecase-num">04</div>
+          <div>
+            <div class="usecase-title">Crowd Density & Anomaly Alerting</div>
+            <div class="usecase-desc">Real-time crowd counting and flow analysis with deviation alerts. Integrates with ICCC for crowd management resource dispatch and evacuation routing.</div>
+            <div class="usecase-tag">Public Safety</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 8: DATA SOURCES & CORRELATION ==================== -->
+  <div class="slide" data-slide="7" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">06 · Data & Correlation</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Intelligence Pipeline</div>
+      <div class="section-title">Data Sources & Correlation</div>
+      <div class="section-subtitle">From raw signals to correlated intelligence</div>
+
+      <div class="flow-container" style="margin-bottom:32px;">
+        <div class="flow-step">
+          <div class="flow-icon"><i data-lucide="radio" style="width:24px;height:24px;"></i></div>
+          <div class="flow-label">Ingest</div>
+          <div class="flow-desc">50+ source feeds</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-icon"><i data-lucide="filter" style="width:24px;height:24px;"></i></div>
+          <div class="flow-label">Normalize</div>
+          <div class="flow-desc">Schema unification</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-icon"><i data-lucide="git-merge" style="width:24px;height:24px;"></i></div>
+          <div class="flow-label">Correlate</div>
+          <div class="flow-desc">Entity resolution</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-icon"><i data-lucide="brain" style="width:24px;height:24px;"></i></div>
+          <div class="flow-label">Analyze</div>
+          <div class="flow-desc">ML scoring</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-icon"><i data-lucide="bell" style="width:24px;height:24px;"></i></div>
+          <div class="flow-label">Alert</div>
+          <div class="flow-desc">ICCC dispatch</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Data Source Categories</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Source</th><th>Type</th><th>Volume</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>CCTV / Video</td><td>Stream</td><td>2PB/day</td><td><span class="status-badge active">Active</span></td></tr>
+              <tr><td>IoT Sensors</td><td>Stream</td><td>500M/day</td><td><span class="status-badge active">Active</span></td></tr>
+              <tr><td>COMINT</td><td>Batch+Stream</td><td>50M/day</td><td><span class="status-badge active">Active</span></td></tr>
+              <tr><td>OSINT</td><td>Batch</td><td>20M/day</td><td><span class="status-badge active">Active</span></td></tr>
+              <tr><td>Financial</td><td>Batch</td><td>10M/day</td><td><span class="status-badge pending">Pending</span></td></tr>
+              <tr><td>Satellite</td><td>Batch</td><td>1TB/day</td><td><span class="status-badge planned">Planned</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Correlation Methods</div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="link" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Entity Resolution</div>
+              <div class="if-desc">Probabilistic matching across identity attributes (name, ID, biometric, device)</div>
+            </div>
+          </div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="map-pin" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Geospatial Co-location</div>
+              <div class="if-desc">Spatiotemporal clustering to identify co-located entities and track movement</div>
+            </div>
+          </div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="network" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Network Analysis</div>
+              <div class="if-desc">Graph traversal for relationship mapping, community detection, and influence scoring</div>
+            </div>
+          </div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="repeat" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Temporal Pattern Matching</div>
+              <div class="if-desc">Sequence detection for behavioral signatures and recurring event patterns</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 9: TECH STACK ==================== -->
+  <div class="slide" data-slide="8" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">07 · Technology</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Infrastructure</div>
+      <div class="section-title">Technology Stack</div>
+      <div class="section-subtitle">Enterprise-grade open-source and cloud-native components</div>
+
+      <div class="content-grid-4" style="margin-bottom:24px;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">Kafka</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Event Streaming</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">Spark</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Batch Processing</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">Flink</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Stream Processing</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">Neo4j</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Graph Database</div>
+        </div>
+      </div>
+      <div class="content-grid-4" style="margin-bottom:24px;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">Delta</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Lake Storage</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">ES</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Search & Index</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">K8s</div>
+          <div style="font-size:11px;color:var(--ey-gray);">Orchestration</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:var(--ey-yellow);margin-bottom:4px;">MLflow</div>
+          <div style="font-size:11px;color:var(--ey-gray);">ML Operations</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Platform Specifications</div>
+          <div class="kv-row"><span class="kv-label">Compute</span><span class="kv-value">200+ Node K8s Cluster</span></div>
+          <div class="kv-row"><span class="kv-label">GPU</span><span class="kv-value">8× NVIDIA A100 (Inference)</span></div>
+          <div class="kv-row"><span class="kv-label">Storage</span><span class="kv-value">50PB Multi-Tier</span></div>
+          <div class="kv-row"><span class="kv-label">Network</span><span class="kv-value">100Gbps InfiniBand</span></div>
+          <div class="kv-row"><span class="kv-label">Deployment</span><span class="kv-value">Hybrid (On-Prem + Gov Cloud)</span></div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Security & Compliance</div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="lock" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">End-to-End Encryption</div>
+              <div class="if-desc">AES-256 at rest, TLS 1.3 in transit, field-level encryption for PII</div>
+            </div>
+          </div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="shield-check" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Zero Trust Architecture</div>
+              <div class="if-desc">mTLS service mesh, RBAC, audit logging, SIEM integration</div>
+            </div>
+          </div>
+          <div class="icon-feature">
+            <div class="if-icon"><i data-lucide="file-check" style="width:18px;height:18px;"></i></div>
+            <div>
+              <div class="if-title">Compliance Framework</div>
+              <div class="if-desc">ISO 27001, SOC 2 Type II, FedRAMP High, data sovereignty controls</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 10: IMPLEMENTATION & ROI ==================== -->
+  <div class="slide" data-slide="9" style="background: linear-gradient(180deg, var(--ey-dark) 0%, var(--ey-charcoal) 100%);">
+    <div class="slide-header">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">08 · Roadmap & ROI</div>
+    </div>
+    <div class="slide-body">
+      <div class="section-label">Delivery & Value</div>
+      <div class="section-title">Implementation Roadmap & ROI</div>
+      <div class="section-subtitle">Phased delivery with measurable outcomes</div>
+
+      <div class="two-col">
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Implementation Phases</div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-phase">Phase 1 · Weeks 1-8</div>
+              <div class="timeline-title">Foundation & Ingestion</div>
+              <div class="timeline-desc">Kafka cluster deployment, CCTV/IoT ingestion pipelines, data lake setup, basic correlation rules</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-phase">Phase 2 · Weeks 9-16</div>
+              <div class="timeline-title">Correlation & Analytics Engine</div>
+              <div class="timeline-desc">Graph-based correlation, ML model training, entity resolution, threat scoring algorithms</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-phase">Phase 3 · Weeks 17-24</div>
+              <div class="timeline-title">ICCC Integration & Dashboards</div>
+              <div class="timeline-desc">Command dashboard, GIS mapping, alert console, automated playbooks, response orchestration</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-phase">Phase 4 · Weeks 25-32</div>
+              <div class="timeline-title">Advanced Analytics & Optimization</div>
+              <div class="timeline-desc">Predictive analytics, NLP on intercepts, advanced visualization, performance tuning, go-live</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Projected ROI</div>
+          <div class="content-grid-2" style="margin-bottom:20px;">
+            <div class="metric-box">
+              <div class="metric-value">73%</div>
+              <div class="metric-label">False Alarm Reduction</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">4.2×</div>
+              <div class="metric-label">Faster Response</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">68%</div>
+              <div class="metric-label">Ops Cost Savings</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value">340%</div>
+              <div class="metric-label">3-Year ROI</div>
+            </div>
+          </div>
+
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ey-yellow);text-transform:uppercase;letter-spacing:1px;">Detection Improvement</div>
+          <div class="card" style="padding:20px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ey-gray);margin-bottom:8px;">
+              <span>Pre-BDCR Detection Rate</span><span style="color:var(--ey-white);font-weight:700;">42%</span>
+            </div>
+            <div class="progress-bar" style="height:10px;border-radius:5px;">
+              <div class="progress-fill" style="width:42%;background:var(--ey-purple);border-radius:5px;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ey-gray);margin-top:16px;margin-bottom:8px;">
+              <span>Post-BDCR Detection Rate</span><span style="color:var(--ey-yellow);font-weight:700;">94%</span>
+            </div>
+            <div class="progress-bar" style="height:10px;border-radius:5px;">
+              <div class="progress-fill" style="width:94%;background:var(--ey-yellow);border-radius:5px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 11: THANK YOU ==================== -->
+  <div class="slide thankyou-slide" data-slide="10">
+    <div class="slide-header" style="position:absolute;top:0;left:0;right:0;">
+      <div class="ey-logo">EY</div>
+      <div class="slide-badge">Closing</div>
+    </div>
+    <div class="thankyou-content">
+      <div class="title-ey-bar" style="margin:0 auto 24px auto;"></div>
+      <div class="thankyou-title">Thank You</div>
+      <div class="thankyou-sub">Questions & Discussion</div>
+      <div class="thankyou-contacts">
+        <div class="contact-item">
+          <strong>EY Advisory Team</strong>
+          Surveillance & Intelligence Practice
+        </div>
+        <div class="contact-item">
+          <strong>Engagement Lead</strong>
+          bdcr-iccc@ey.com
+        </div>
+        <div class="contact-item">
+          <strong>Classification</strong>
+          Confidential — Internal Use
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== NAVIGATION BAR ===== -->
+<div class="nav-bar">
+  <div class="nav-left">
+    <button class="nav-btn" onclick="prevSlide()"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i> Previous</button>
+  </div>
+  <div class="nav-center" id="slideDots"></div>
+  <div class="nav-right">
+    <span id="slideCounter">1 / 11</span>
+    <button class="nav-btn" onclick="nextSlide()">Next <i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+  </div>
+</div>
+
+<script>
+  const totalSlides = 11;
+  let currentSlide = 0;
+
+  // Initialize dots
+  const dotsContainer = document.getElementById('slideDots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function goToSlide(index) {
+    if (index < 0 || index >= totalSlides) return;
+    
+    // Hide current
+    const slides = document.querySelectorAll('.slide');
+    slides[currentSlide].classList.remove('active');
+    
+    // Show new
+    currentSlide = index;
+    slides[currentSlide].classList.add('active');
+    
+    // Update dots
+    const dots = document.querySelectorAll('.slide-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+    
+    // Update counter
+    document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+    
+    // Re-init lucide icons for new slide
+    setTimeout(() => lucide.createIcons(), 50);
+  }
+
+  function nextSlide() { goToSlide(currentSlide + 1); }
+  function prevSlide() { goToSlide(currentSlide - 1); }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); goToSlide(totalSlides - 1); }
+  });
+
+  // Initialize Lucide icons
+  lucide.createIcons();
+</script>
+
+</body>
+</html>

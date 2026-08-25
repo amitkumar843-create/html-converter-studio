@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rate Revision Comparative Statement - Combined Selected Slides</title>
+<style>
+:root {
+  --ey-off-black:#2E2E38;
+  --ey-gray-01:#747480;
+  --ey-gray-02:#C4C4CD;
+  --ey-black:#000000;
+  --ey-white:#FFFFFF;
+  --ey-yellow:#FFE600;
+}
+* { box-sizing:border-box; }
+html, body {
+  margin:0;
+  padding:0;
+  background:#17171d;
+  color:var(--ey-white);
+  font-family:"Segoe UI", Arial, sans-serif;
+}
+.toolbar {
+  position:sticky;
+  top:0;
+  z-index:1000;
+  height:56px;
+  background:rgba(46,46,56,.98);
+  border-bottom:4px solid var(--ey-yellow);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 22px;
+}
+.toolbar-title { font-weight:800; letter-spacing:.3px; }
+.toolbar-title span { color:var(--ey-yellow); }
+.nav { display:flex; gap:8px; align-items:center; }
+.nav button {
+  border:1px solid rgba(255,230,0,.35);
+  background:rgba(255,255,255,.06);
+  color:var(--ey-white);
+  border-radius:999px;
+  padding:7px 12px;
+  cursor:pointer;
+  font-weight:700;
+}
+.nav button:hover { background:var(--ey-yellow); color:var(--ey-black); }
+.deck {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:42px;
+  padding:36px 0 64px;
+}
+.slide-shell {
+  width:1280px;
+  height:720px;
+  background:var(--ey-off-black);
+  box-shadow:0 18px 60px rgba(0,0,0,.55);
+  position:relative;
+  page-break-after:always;
+}
+.slide-label {
+  position:absolute;
+  top:-26px;
+  left:0;
+  color:var(--ey-gray-02);
+  font-size:13px;
+  letter-spacing:.4px;
+}
+.slide-frame {
+  width:1280px;
+  height:720px;
+  border:0;
+  display:block;
+  background:var(--ey-off-black);
+}
+@media print {
+  .toolbar, .slide-label { display:none !important; }
+  body { background:#fff; }
+  .deck { padding:0; gap:0; }
+  .slide-shell { box-shadow:none; margin:0; }
+}
+
+/* Clean viewing mode: removed outer title, navigation buttons and slide labels */
+.toolbar, .nav, .toolbar-title, .slide-label { display:none !important; }
+html, body { background:var(--ey-off-black) !important; }
+.deck { padding:0 0 40px !important; gap:28px !important; }
+.slide-shell { box-shadow:none !important; }
+
+
+/* Fit-to-screen full-slide viewing fix */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  background: var(--ey-off-black, #2E2E38) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scroll-behavior: smooth !important;
+}
+body, body * { font-family: Aptos, Arial, sans-serif !important; }
+.deck {
+  width: 100% !important;
+  max-width: 100vw !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  align-items: center !important;
+  background: var(--ey-off-black, #2E2E38) !important;
+  scroll-snap-type: y mandatory;
+}
+.slide-shell {
+  width: 1280px;
+  height: 100vh !important;
+  min-height: 0 !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+  position: relative !important;
+  box-shadow: none !important;
+  background: var(--ey-off-black, #2E2E38) !important;
+  scroll-snap-align: start;
+  flex: 0 0 auto !important;
+}
+.slide-frame {
+  width: 1280px !important;
+  height: 720px !important;
+  border: 0 !important;
+  display: block !important;
+  background: var(--ey-off-black, #2E2E38) !important;
+  transform-origin: top left !important;
+}
+.footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+.slide-nav-panel {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  z-index: 9999;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgba(46, 46, 56, .68);
+  border: 1px solid rgba(255, 230, 0, .30);
+  box-shadow: 0 6px 18px rgba(0,0,0,.24);
+  backdrop-filter: blur(8px);
+}
+.slide-nav-panel a {
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255,230,0,.70);
+  color: #FFFFFF;
+  background: rgba(255,255,255,.05);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  transition: all .18s ease;
+}
+.slide-nav-panel a:hover,
+.slide-nav-panel a.active {
+  background: #FFE600;
+  color: #000000;
+  box-shadow: 0 0 12px rgba(255,230,0,.32);
+  transform: translateY(-1px);
+}
+@media print {
+  .slide-nav-panel { display:none !important; }
+  .deck { width: 1280px !important; max-width: 1280px !important; gap: 0 !important; padding: 0 !important; }
+  .slide-shell { width: 1280px !important; height: 720px !important; margin: 0 !important; box-shadow: none !important; }
+  .slide-frame { transform: none !important; width: 1280px !important; height: 720px !important; }
+}
+/* End fit-to-screen full-slide viewing fix */
+
+</style>
+</head>
+<body>
+<main class="deck">
+
+<section class="slide-shell" id="slide-1">
+<div class="slide-nav-panel" aria-label="Slide navigation"><a href="#slide-1" class="active" data-slide="1">1</a><a href="#slide-2" class="" data-slide="2">2</a><a href="#slide-3" class="" data-slide="3">3</a><a href="#slide-4" class="" data-slide="4">4</a><a href="#slide-5" class="" data-slide="5">5</a></div>
+
+<iframe class="slide-frame" title="Slide 1" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;title&gt;Rate Revision Comparative Statement - Option 2 Final&lt;/title&gt;
+&lt;style&gt;
+    :root {
+        --ey-off-black: #2E2E38;
+        --ey-gray-01: #747480;
+        --ey-gray-02: #C4C4CD;
+        --ey-black: #000000;
+        --ey-white: #FFFFFF;
+        --ey-yellow: #FFE600;
+        --card-bg: rgba(255,255,255,0.075);
+        --card-border: rgba(255,255,255,0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background: var(--ey-off-black);
+        font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+        color: var(--ey-white);
+    }
+
+    .slide-wrapper {
+        width: 1280px;
+        height: 720px;
+        margin: 40px auto;
+        position: relative;
+        overflow: hidden;
+        background: var(--ey-off-black); /* Updated: EY Off Black as slide background */
+        box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    }
+
+    .slide-wrapper::before {
+        content: &quot;&quot;;
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 75% 27%, rgba(255,230,0,0.13), transparent 19%),
+            radial-gradient(circle at 15% 65%, rgba(255,255,255,0.045), transparent 28%),
+            linear-gradient(90deg, rgba(0,0,0,0.23), rgba(255,255,255,0.025));
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .slide-wrapper::after {
+        content: &quot;&quot;;
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+        background-size: 42px 42px;
+        opacity: 0.26;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .top-rule {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 7px;
+        background: var(--ey-yellow);
+        z-index: 20;
+    }
+
+    .slide-label {
+        position: absolute;
+        top: 23px;
+        right: 24px;
+        z-index: 20;
+        color: var(--ey-yellow);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    .header {
+        position: absolute;
+        left: 56px;
+        top: 58px;
+        width: 780px;
+        z-index: 5;
+    }
+
+    h1 {
+        font-family: Georgia, &quot;Times New Roman&quot;, serif;
+        font-size: 58px;
+        letter-spacing: 8px;
+        line-height: 1;
+        color: var(--ey-white);
+        text-shadow: 0 5px 22px rgba(0,0,0,0.32);
+    }
+
+    .subtitle {
+        margin-top: 15px;
+        color: var(--ey-yellow);
+        font-family: Georgia, &quot;Times New Roman&quot;, serif;
+        font-size: 24px;
+        letter-spacing: 7px;
+        text-transform: uppercase;
+    }
+
+    .context-row {
+        margin-top: 23px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: #D8DEF4;
+    }
+
+    .project-pill,
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.075);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+    }
+
+    .project-pill { font-size: 16px; }
+    .chip { font-size: 12px; font-weight: 600; }
+
+    .gnida-mini {
+        position: absolute;
+        right: 86px;
+        top: 60px;
+        text-align: center;
+        color: #D7DCEB;
+        z-index: 6;
+    }
+
+    .gnida-mini strong {
+        display: block;
+        font-family: Georgia, &quot;Times New Roman&quot;, serif;
+        font-size: 18px;
+        letter-spacing: 1px;
+    }
+
+    .gnida-mini span {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        line-height: 1.15;
+        text-transform: uppercase;
+        color: #C4C4CD;
+    }
+
+    .gauge {
+        position: absolute;
+        right: 72px;
+        top: 116px;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: conic-gradient(var(--ey-yellow) 0deg 53deg, rgba(255,255,255,0.16) 53deg 360deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 4;
+        box-shadow: 0 24px 55px rgba(0,0,0,0.38);
+    }
+
+    .gauge::after {
+        content: &quot;&quot;;
+        width: 186px;
+        height: 186px;
+        border-radius: 50%;
+        background: #162147;
+        position: absolute;
+    }
+
+    .gauge-content {
+        position: relative;
+        z-index: 6;
+        text-align: center;
+    }
+
+    .gauge-value {
+        color: var(--ey-yellow);
+        font-family: Georgia, &quot;Times New Roman&quot;, serif;
+        font-size: 42px;
+        font-weight: 900;
+    }
+
+    .gauge-label {
+        margin-top: 8px;
+        color: #DCE2F6;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+    }
+
+    .bridge-zone {
+        position: absolute;
+        left: 64px;
+        top: 230px;
+        width: 825px;
+        height: 162px;
+        z-index: 5;
+    }
+
+    /* Removed front horizontal line from KPI cards */
+    .impact-path { display: none; }
+
+    .impact-node {
+        position: absolute;
+        top: 0;
+        width: 218px;
+        min-height: 140px;
+        border-radius: 20px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        padding: 22px;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .impact-node.old { left: 0; }
+
+    .impact-node.escalation {
+        left: 302px;
+        background: rgba(255,230,0,0.07);
+        border-color: rgba(255,230,0,0.58);
+    }
+
+    .impact-node.revised {
+        right: 0;
+        border-color: rgba(255,230,0,0.52);
+    }
+
+    .impact-label {
+        color: #C4C4CD;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .impact-value {
+        font-family: Georgia, &quot;Times New Roman&quot;, serif;
+        font-size: 34px;
+        font-weight: 900;
+        line-height: 1.05;
+    }
+
+    .impact-value.yellow { color: var(--ey-yellow); }
+
+    .impact-sub {
+        margin-top: 12px;
+        font-size: 11px;
+        color: #DCE2F6;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .drivers-strip {
+        position: absolute;
+        left: 56px;
+        bottom: 86px;
+        width: 1080px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        z-index: 6;
+    }
+
+    .driver-box {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        padding: 18px 15px;
+        min-height: 118px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .driver-box-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 11px;
+    }
+
+    .icon-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(255,230,0,0.10);
+        border: 1px solid rgba(255,230,0,0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ey-yellow);
+        font-weight: 900;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .driver-title {
+        font-size: 13px;
+        color: var(--ey-yellow);
+        font-weight: 900;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+
+    .driver-desc {
+        color: #F2F5FF;
+        font-size: 12px;
+        line-height: 1.38;
+    }
+
+    .footer {
+        position: absolute;
+        bottom: 22px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: #C4C4CD;
+        font-size: 13px;
+        z-index: 10;
+    }
+
+    @media print {
+        body { background: #fff; }
+        .slide-wrapper { margin: 0; box-shadow: none; page-break-after: always; }
+    }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no { display:none !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;slide-1-box-gauge-alignment-animation-fix&quot;&gt;
+/* Slide 1: equal-size financial boxes + aligned gauge header + subtle animations */
+.bridge-zone {
+    left: 66px !important;
+    top: 230px !important;
+    width: 835px !important;
+    height: 170px !important;
+}
+.impact-node {
+    top: 0 !important;
+    width: 260px !important;
+    height: 170px !important;
+    min-height: 170px !important;
+    padding: 24px 26px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    border-radius: 20px !important;
+}
+.impact-node.old {
+    left: 0 !important;
+    right: auto !important;
+}
+.impact-node.escalation {
+    left: 287px !important;
+    right: auto !important;
+}
+.impact-node.revised {
+    left: 574px !important;
+    right: auto !important;
+}
+.impact-label {
+    margin-bottom: 13px !important;
+    font-size: 14px !important;
+}
+.impact-value {
+    font-size: 36px !important;
+    line-height: 1.05 !important;
+}
+.impact-sub {
+    margin-top: 14px !important;
+    font-size: 11px !important;
+}
+/* Keep GNIDA text exactly centered above the gauge circle */
+.gnida-mini {
+    right: 72px !important;
+    top: 62px !important;
+    width: 260px !important;
+    text-align: center !important;
+}
+.gauge {
+    right: 72px !important;
+    top: 132px !important;
+}
+/* Slightly rebalance top chips so they align cleanly above the three KPI boxes */
+.context-row {
+    gap: 18px !important;
+}
+.project-pill {
+    min-width: 304px !important;
+}
+.chip {
+    min-width: 178px !important;
+}
+/* Subtle animations - professional, non-distracting */
+@keyframes slide1FadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide1GaugeGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(255,230,0,0)); }
+    50% { filter: drop-shadow(0 0 10px rgba(255,230,0,.18)); }
+}
+.impact-node {
+    animation: slide1FadeUp .65s ease both;
+}
+.impact-node.old { animation-delay: .05s; }
+.impact-node.escalation { animation-delay: .15s; }
+.impact-node.revised { animation-delay: .25s; }
+.gauge {
+    animation: slide1GaugeGlow 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .impact-node, .gauge { animation: none !important; }
+}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;aptos-footer-fullscreen-override&quot;&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+body, body *, .slide, .slide-wrapper, h1, h2, h3, h4, p, span, div, table, th, td {
+  font-family: Aptos, Arial, sans-serif !important;
+}
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no, .footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;slide1-nav-clearance-fix&quot;&gt;
+.gnida-mini { top: 78px !important; }
+.gauge { top: 145px !important; }
+&lt;/style&gt;
+
+&lt;/head&gt;
+&lt;body&gt;
+&lt;section class=&quot;slide-wrapper&quot;&gt;
+    &lt;div class=&quot;top-rule&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;slide-label&quot;&gt;Option 2&lt;/div&gt;
+
+    &lt;div class=&quot;header&quot;&gt;
+        &lt;h1&gt;RATE REVISION&lt;/h1&gt;
+        &lt;div class=&quot;subtitle&quot;&gt;Comparative Statement&lt;/div&gt;
+        &lt;div class=&quot;context-row&quot;&gt;
+            &lt;div class=&quot;project-pill&quot;&gt;Greater Noida Safe City Project&lt;/div&gt;
+            &lt;div class=&quot;chip&quot;&gt;Dec 2025 → Jun 2026&lt;/div&gt;
+            &lt;div class=&quot;chip&quot;&gt;Confidential Review&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;gnida-mini&quot;&gt;
+        &lt;strong&gt;GNIDA&lt;/strong&gt;
+        &lt;span&gt;Greater Noida Industrial&lt;br&gt;Development Authority&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;gauge&quot;&gt;
+        &lt;div class=&quot;gauge-content&quot;&gt;
+            &lt;div class=&quot;gauge-value&quot;&gt;+14.63%&lt;/div&gt;
+            &lt;div class=&quot;gauge-label&quot;&gt;Blended Increase&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;bridge-zone&quot;&gt;
+        &lt;div class=&quot;impact-path&quot;&gt;&lt;/div&gt;
+
+        &lt;div class=&quot;impact-node old&quot;&gt;
+            &lt;div class=&quot;impact-label&quot;&gt;Total Old Value&lt;/div&gt;
+            &lt;div class=&quot;impact-value&quot;&gt;₹229.5 Cr&lt;/div&gt;
+            &lt;div class=&quot;impact-sub&quot;&gt;Base Period&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;impact-node escalation&quot;&gt;
+            &lt;div class=&quot;impact-label&quot;&gt;Net Escalation&lt;/div&gt;
+            &lt;div class=&quot;impact-value yellow&quot;&gt;+₹33.6&lt;br&gt;Cr&lt;/div&gt;
+            &lt;div class=&quot;impact-sub&quot;&gt;Revision Impact&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;impact-node revised&quot;&gt;
+            &lt;div class=&quot;impact-label&quot;&gt;Total Revised Value&lt;/div&gt;
+            &lt;div class=&quot;impact-value&quot;&gt;₹263.1 Cr&lt;/div&gt;
+            &lt;div class=&quot;impact-sub&quot;&gt;Revised Period&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;drivers-strip&quot;&gt;
+        &lt;div class=&quot;driver-box&quot;&gt;
+            &lt;div class=&quot;driver-box-top&quot;&gt;
+                &lt;div class=&quot;icon-circle&quot;&gt;₹&lt;/div&gt;
+                &lt;div class=&quot;driver-title&quot;&gt;Currency&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;driver-desc&quot;&gt;USD/INR moved from ₹84-86 to ₹94.7, creating approx. +10.1% cost pressure.&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;driver-box&quot;&gt;
+            &lt;div class=&quot;driver-box-top&quot;&gt;
+                &lt;div class=&quot;icon-circle&quot;&gt;!&lt;/div&gt;
+                &lt;div class=&quot;driver-title&quot;&gt;Geo-Risk&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;driver-desc&quot;&gt;Iran-US conflict disrupted NAND flash and helium supply chain availability.&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;driver-box&quot;&gt;
+            &lt;div class=&quot;driver-box-top&quot;&gt;
+                &lt;div class=&quot;icon-circle&quot;&gt;↗&lt;/div&gt;
+                &lt;div class=&quot;driver-title&quot;&gt;Freight&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;driver-desc&quot;&gt;Global freight surcharges increased by 15-20% due to war-risk premiums.&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;driver-box&quot;&gt;
+            &lt;div class=&quot;driver-box-top&quot;&gt;
+                &lt;div class=&quot;icon-circle&quot; style=&quot;font-size:13px;&quot;&gt;PCB&lt;/div&gt;
+                &lt;div class=&quot;driver-title&quot;&gt;Components&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;driver-desc&quot;&gt;Circuit board and PCB cost surge of approx. +40% impacted technology hardware.&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/section&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</section>
+<section class="slide-shell" id="slide-2">
+<div class="slide-nav-panel" aria-label="Slide navigation"><a href="#slide-1" class="" data-slide="1">1</a><a href="#slide-2" class="active" data-slide="2">2</a><a href="#slide-3" class="" data-slide="3">3</a><a href="#slide-4" class="" data-slide="4">4</a><a href="#slide-5" class="" data-slide="5">5</a></div>
+
+<iframe class="slide-frame" title="Slide 2" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;title&gt;Slide 2 Option 2 Fixed - Why Have Rates Escalated?&lt;/title&gt;
+&lt;style&gt;
+:root{--off:#2E2E38;--g1:#747480;--g2:#C4C4CD;--black:#000;--white:#fff;--yellow:#FFE600;--navy:#101A3A;--card:rgba(255,255,255,.075);--line:rgba(255,255,255,.16)}
+*{box-sizing:border-box;margin:0;padding:0}body{background:#1e1e24;font-family:&quot;Segoe UI&quot;,Arial,sans-serif;color:var(--white)}
+.slide{width:1280px;height:720px;margin:40px auto;position:relative;overflow:hidden;background:var(--off);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.slide:before{content:&quot;&quot;;position:absolute;inset:0;background:radial-gradient(circle at 76% 18%,rgba(255,230,0,.12),transparent 23%),radial-gradient(circle at 13% 80%,rgba(255,255,255,.045),transparent 28%);z-index:0}.slide:after{content:&quot;&quot;;position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:44px 44px;opacity:.38;z-index:0}.top{position:absolute;top:0;left:0;width:100%;height:7px;background:var(--yellow);z-index:5}.hdr{position:absolute;left:56px;top:34px;right:56px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start}.title h1{font-family:Georgia,serif;font-size:40px;letter-spacing:2px}.title p{margin-top:12px;color:var(--yellow);font-size:15px;letter-spacing:.6px}.slide-no{color:var(--g2);font-size:14px;margin-top:16px}.footer{position:absolute;bottom:22px;width:100%;text-align:center;color:var(--g2);font-size:13px;z-index:8}.badge{background:#0d1739;color:var(--yellow);border-radius:8px;padding:8px 14px;font-family:Georgia,serif;font-size:28px;font-weight:900;line-height:1.05;text-align:center;border:1px solid rgba(255,230,0,.22)}.icon{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0d1739;border:1px solid rgba(255,230,0,.18);font-size:30px;color:var(--yellow);flex:0 0 58px}.smalltag{margin-top:auto;padding:10px 14px;border-radius:7px;background:rgba(255,255,255,.10);color:#bfc7dc;text-align:center;font-size:12px;font-weight:800;letter-spacing:1.7px;text-transform:uppercase}.card h3{font-family:Georgia,serif;font-size:21px;color:#fff}.desc{color:#ECEFF8;font-size:14px;line-height:1.35}.option-label{position:absolute;right:56px;top:12px;color:var(--yellow);z-index:10;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
+.opt2 .center{position:absolute;left:64px;right:64px;top:138px;height:420px;z-index:5}.opt2 .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:230px;height:230px;border-radius:50%;background:conic-gradient(var(--yellow) 0 120deg,rgba(255,255,255,.13) 120deg 360deg);display:flex;align-items:center;justify-content:center;box-shadow:0 22px 55px rgba(0,0,0,.35)}.opt2 .hub:after{content:&quot;&quot;;position:absolute;width:160px;height:160px;border-radius:50%;background:#111936}.opt2 .hub-text{position:relative;z-index:2;text-align:center}.opt2 .hub-text strong{display:block;font-family:Georgia,serif;color:var(--yellow);font-size:40px}.opt2 .hub-text span{display:block;margin-top:8px;color:#fff;font-size:13px;letter-spacing:1.2px;text-transform:uppercase}.opt2 .factor{position:absolute;width:360px;min-height:160px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 18px 18px 18px;box-shadow:0 14px 34px rgba(0,0,0,.22)}.opt2 .factor:before{content:&quot;&quot;;position:absolute;width:72px;height:2px;background:rgba(255,230,0,.55);top:50%;transform:translateY(-50%)}.opt2 .f1{left:0;top:0}.opt2 .f2{right:0;top:0}.opt2 .f3{left:0;bottom:0}.opt2 .f4{right:0;bottom:0}.opt2 .f1:before,.opt2 .f3:before{right:-72px}.opt2 .f2:before,.opt2 .f4:before{left:-72px}.opt2 .factor-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;min-height:46px;padding-right:102px}.opt2 .factor .icon{width:44px;height:44px;font-size:23px;flex-basis:44px}.opt2 .factor h3{font-size:18px;line-height:1.18;max-width:185px;word-break:normal;overflow-wrap:normal}.opt2 .factor .badge{position:absolute;right:18px;top:18px;font-size:22px;padding:6px 11px;min-width:86px}.opt2 .desc{font-size:12.4px;margin-top:10px;padding-right:0;max-width:310px}.opt2 .smalltag{font-size:10px;margin-top:14px;padding:8px 10px;letter-spacing:1.4px}.opt2 .f4 h3{max-width:170px}.opt2 .f3 h3{max-width:170px}
+@media print{body{background:#fff}.slide{margin:0;box-shadow:none;page-break-after:always}}
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no { display:none !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;aptos-footer-fullscreen-override&quot;&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+body, body *, .slide, .slide-wrapper, h1, h2, h3, h4, p, span, div, table, th, td {
+  font-family: Aptos, Arial, sans-serif !important;
+}
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no, .footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;slide2-space-optimization&quot;&gt;
+.opt2 .center {
+  top: 126px !important;
+  height: 535px !important;
+}
+.opt2 .hub {
+  width: 250px !important;
+  height: 250px !important;
+}
+.opt2 .hub:after {
+  width: 174px !important;
+  height: 174px !important;
+}
+.opt2 .hub-text strong { font-size: 43px !important; }
+.opt2 .factor {
+  width: 370px !important;
+  min-height: 178px !important;
+  padding: 20px 20px 18px 20px !important;
+}
+.opt2 .factor-head { margin-bottom: 16px !important; }
+.opt2 .factor .badge { top: 20px !important; right: 20px !important; }
+.opt2 .desc { font-size: 13px !important; line-height: 1.38 !important; max-width: 320px !important; }
+.opt2 .smalltag { margin-top: 16px !important; padding: 9px 10px !important; }
+.opt2 .f1 { left: 0 !important; top: 0 !important; }
+.opt2 .f2 { right: 0 !important; top: 0 !important; }
+.opt2 .f3 { left: 0 !important; bottom: 0 !important; }
+.opt2 .f4 { right: 0 !important; bottom: 0 !important; }
+.opt2 .factor:before { width: 88px !important; }
+.opt2 .f1:before, .opt2 .f3:before { right: -88px !important; }
+.opt2 .f2:before, .opt2 .f4:before { left: -88px !important; }
+&lt;/style&gt;
+
+&lt;/head&gt;
+&lt;body&gt;
+&lt;section class=&quot;slide opt2&quot;&gt;&lt;div class=&quot;top&quot;&gt;&lt;/div&gt;&lt;div class=&quot;option-label&quot;&gt;Option 2 / Fixed&lt;/div&gt;&lt;div class=&quot;hdr&quot;&gt;&lt;div class=&quot;title&quot;&gt;&lt;h1&gt;WHY HAVE RATES ESCALATED?&lt;/h1&gt;&lt;p&gt;Driver impact map&amp;nbsp; | &amp;nbsp;Dec 2025 → Jun 2026&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;slide-no&quot;&gt;Slide 2 of 5&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;center&quot;&gt;&lt;div class=&quot;hub&quot;&gt;&lt;div class=&quot;hub-text&quot;&gt;&lt;strong&gt;4&lt;/strong&gt;&lt;span&gt;Escalation&lt;br&gt;Drivers&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;factor f1&quot;&gt;&lt;div class=&quot;factor-head&quot;&gt;&lt;div class=&quot;icon&quot;&gt;🌐&lt;/div&gt;&lt;h3&gt;Currency Depreciation&lt;/h3&gt;&lt;/div&gt;&lt;div class=&quot;badge&quot;&gt;+10.1%&lt;/div&gt;&lt;div class=&quot;desc&quot;&gt;INR/USD moved from ₹84-86 to ₹94.7, impacting imported equipment and USD-denominated contracts.&lt;/div&gt;&lt;div class=&quot;smalltag&quot;&gt;Import-heavy categories&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;factor f2&quot;&gt;&lt;div class=&quot;factor-head&quot;&gt;&lt;div class=&quot;icon&quot;&gt;⚠&lt;/div&gt;&lt;h3&gt;Iran-US Conflict Impact&lt;/h3&gt;&lt;/div&gt;&lt;div class=&quot;badge&quot;&gt;+28%&lt;/div&gt;&lt;div class=&quot;desc&quot;&gt;Bromine and helium supply disruption triggered severe SAN/NAS storage and semiconductor price spikes.&lt;/div&gt;&lt;div class=&quot;smalltag&quot;&gt;Storage critical path&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;factor f3&quot;&gt;&lt;div class=&quot;factor-head&quot;&gt;&lt;div class=&quot;icon&quot;&gt;🛡&lt;/div&gt;&lt;h3&gt;Freight War-Risk Premium&lt;/h3&gt;&lt;/div&gt;&lt;div class=&quot;badge&quot;&gt;+15-20%&lt;/div&gt;&lt;div class=&quot;desc&quot;&gt;Red Sea shipping risk increased CIF freight for servers, switches, cameras and fiber imports.&lt;/div&gt;&lt;div class=&quot;smalltag&quot;&gt;Imported hardware&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;factor f4&quot;&gt;&lt;div class=&quot;factor-head&quot;&gt;&lt;div class=&quot;icon&quot;&gt;▣&lt;/div&gt;&lt;h3&gt;Circuit Board Cost Surge&lt;/h3&gt;&lt;/div&gt;&lt;div class=&quot;badge&quot;&gt;+40%&lt;/div&gt;&lt;div class=&quot;desc&quot;&gt;PCB cost spike affected field switches, ATCS controllers and traffic detection hardware.&lt;/div&gt;&lt;div class=&quot;smalltag&quot;&gt;Network &amp; detection systems&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+&lt;/body&gt;&lt;/html&gt;"></iframe>
+</section>
+<section class="slide-shell" id="slide-3">
+<div class="slide-nav-panel" aria-label="Slide navigation"><a href="#slide-1" class="" data-slide="1">1</a><a href="#slide-2" class="" data-slide="2">2</a><a href="#slide-3" class="active" data-slide="3">3</a><a href="#slide-4" class="" data-slide="4">4</a><a href="#slide-5" class="" data-slide="5">5</a></div>
+
+<iframe class="slide-frame" title="Slide 3" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;title&gt;Slide 3 Option 1 Fixed v3 - Category-wise Escalation Rates&lt;/title&gt;
+&lt;style&gt;
+:root{
+  --off:#2E2E38;--g1:#747480;--g2:#C4C4CD;--black:#000;--white:#fff;--yellow:#FFE600;
+  --green:#1f7a4c;--blue:#2E8BB4;--amber:#E7B846;--orange:#D85A1F;--red:#C7382F;
+  --card:rgba(255,255,255,.075);--line:rgba(255,255,255,.16);--track:rgba(255,255,255,.095);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1e1e24;font-family:&quot;Segoe UI&quot;,Arial,sans-serif;color:var(--white)}
+.slide{width:1280px;height:720px;margin:40px auto;position:relative;overflow:hidden;background:var(--off);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.slide:before{content:&quot;&quot;;position:absolute;inset:0;background:radial-gradient(circle at 74% 18%,rgba(255,230,0,.12),transparent 24%),radial-gradient(circle at 16% 78%,rgba(255,255,255,.045),transparent 30%);z-index:0}
+.slide:after{content:&quot;&quot;;position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:44px 44px;opacity:.38;z-index:0}
+.top{position:absolute;top:0;left:0;width:100%;height:7px;background:var(--yellow);z-index:5}
+.hdr{position:absolute;left:56px;top:34px;right:56px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start}
+.title h1{font-family:Georgia,serif;font-size:35px;letter-spacing:1.35px;line-height:1.05;color:#fff}.title p{margin-top:12px;color:var(--yellow);font-size:15px;letter-spacing:.3px}.slide-no{color:var(--g2);font-size:14px;margin-top:16px}.option-label{position:absolute;right:56px;top:12px;color:var(--yellow);z-index:10;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
+.content{position:absolute;left:56px;right:56px;top:132px;bottom:62px;z-index:5;display:grid;grid-template-columns:700px 1fr;gap:28px}.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06)}
+.chart{padding:15px 18px 14px;overflow:hidden;display:flex;flex-direction:column}.legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:10px;flex:0 0 auto}.legend span{display:flex;align-items:center;gap:7px;color:#eef1fb;font-size:11.4px;white-space:nowrap}.sw{width:15px;height:15px;border-radius:3px;display:inline-block}.chart-inner{position:relative;flex:1;min-height:0;padding-bottom:18px}.axis{position:absolute;left:171px;right:38px;top:0;bottom:22px;display:grid;grid-template-columns:repeat(6,1fr);pointer-events:none}.axis i{border-left:1px solid rgba(255,255,255,.105)}
+.rows{position:relative;z-index:2;height:100%;padding-bottom:22px;display:grid;grid-template-columns:156px 1fr 30px;grid-template-rows:repeat(23,1fr);row-gap:3px;align-items:center}.cat{font-size:11.8px;line-height:1;color:#fff;text-align:right;white-space:nowrap;padding-right:2px}.barwrap{height:10px;background:var(--track);border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}.bar{height:10px;border-radius:0 999px 999px 0}.val{font-size:11.6px;color:#fff;text-align:left;line-height:1;padding-left:2px}.scale{position:absolute;left:171px;right:38px;bottom:0;height:15px;display:grid;grid-template-columns:repeat(7,1fr);color:#bfc7dc;font-size:10.5px;z-index:3}.scale span{text-align:left}.scale span:last-child{text-align:right}
+.side{padding:18px 22px 18px;overflow:hidden;display:flex;flex-direction:column}.side h2{font-size:15px;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;flex:0 0 auto}.side-list{flex:1;min-height:0;display:grid;grid-template-rows:repeat(8,1fr);gap:6px}.item{display:grid;grid-template-columns:1fr 62px;gap:10px;align-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:10px;padding:6px 11px;min-height:0}.item strong{font-size:12.2px;color:#fff;line-height:1.05}.item small{display:block;color:#aeb7d0;font-size:10px;margin-top:3px;line-height:1.05}.pill{background:var(--red);color:#fff;border-radius:8px;text-align:center;padding:7px 0;font-weight:900;font-size:12.5px}.pill.orange{background:var(--orange)}.pill.amber{background:var(--amber);color:#101010}
+.footer{position:absolute;bottom:12px;left:0;width:100%;text-align:center;color:var(--g2);font-size:12.5px;z-index:8}
+@media print{body{background:#fff}.slide{margin:0;box-shadow:none;page-break-after:always}}
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no { display:none !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;aptos-footer-fullscreen-override&quot;&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+body, body *, .slide, .slide-wrapper, h1, h2, h3, h4, p, span, div, table, th, td {
+  font-family: Aptos, Arial, sans-serif !important;
+}
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no, .footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+&lt;/style&gt;
+
+&lt;/head&gt;
+&lt;body&gt;
+&lt;section class=&quot;slide&quot;&gt;
+  &lt;div class=&quot;top&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;option-label&quot;&gt;Option 1 / Fixed v3&lt;/div&gt;
+  &lt;div class=&quot;hdr&quot;&gt;
+    &lt;div class=&quot;title&quot;&gt;
+      &lt;h1&gt;CATEGORY-WISE ESCALATION RATES&lt;/h1&gt;
+      &lt;p&gt;Revision factors range from +8% (civil/steel) to +28% (storage) based on supply chain exposure&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;slide-no&quot;&gt;Slide 3 of 5&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;content&quot;&gt;
+    &lt;div class=&quot;panel chart&quot;&gt;
+      &lt;div class=&quot;legend&quot;&gt;
+        &lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--green)&quot;&gt;&lt;/i&gt;8-10% Low&lt;/span&gt;
+        &lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--blue)&quot;&gt;&lt;/i&gt;11-14% Moderate&lt;/span&gt;
+        &lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--amber)&quot;&gt;&lt;/i&gt;15-18% High&lt;/span&gt;
+        &lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--orange)&quot;&gt;&lt;/i&gt;19-22% Very High&lt;/span&gt;
+        &lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--red)&quot;&gt;&lt;/i&gt;23-28% Critical&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;chart-inner&quot;&gt;
+        &lt;div class=&quot;axis&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;/div&gt;
+        &lt;div class=&quot;rows&quot;&gt;
+          &lt;div class=&quot;cat&quot;&gt;SAN / NAS Storage&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:93.3%;background:var(--red)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;28&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Backup Appliance&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:86.7%;background:var(--red)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;26&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;UAV / Drones&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:83.3%;background:var(--red)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;25&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Servers&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:83.3%;background:var(--red)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;25&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;DC Core/Agg Switches&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:80%;background:var(--red)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;24&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Traffic Radar / ATCS&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:66.7%;background:var(--orange)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;20&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;DC Routers&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:73.3%;background:var(--orange)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;22&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Field Switches&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:73.3%;background:var(--orange)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;22&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;VMS Displays / Edge&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:60%;background:var(--amber)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;18&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Workstations&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:60%;background:var(--amber)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;18&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Precision HVAC&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:53.3%;background:var(--amber)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;16&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;UPS Systems&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:53.3%;background:var(--amber)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;16&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Enclosures&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:33.3%;background:var(--green)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;10&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Manpower O&amp;M&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:40%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;12&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Traffic Signals / LED&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:50%;background:var(--amber)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;15&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Signage&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:43.3%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;13&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;OFC / Fiber&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:46.7%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;14&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Field Cameras / PA&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:46.7%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;14&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;DC Racks&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:40%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;12&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;LED TVs / Displays&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:40%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;12&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Cybersecurity Audit&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:33.3%;background:var(--green)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;10&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Software Licenses&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:36.7%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;11&lt;/div&gt;
+          &lt;div class=&quot;cat&quot;&gt;Civil / Poles&lt;/div&gt;&lt;div class=&quot;barwrap&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:26.7%;background:var(--green)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;8&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;scale&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;5&lt;/span&gt;&lt;span&gt;10&lt;/span&gt;&lt;span&gt;15&lt;/span&gt;&lt;span&gt;20&lt;/span&gt;&lt;span&gt;25&lt;/span&gt;&lt;span&gt;30&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;panel side&quot;&gt;
+      &lt;h2&gt;Highest-impact items&lt;/h2&gt;
+      &lt;div class=&quot;side-list&quot;&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;SAN/NAS Storage&lt;/strong&gt;&lt;small&gt;NAND + Helium crisis&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill&quot;&gt;+28%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;Backup Appliance&lt;/strong&gt;&lt;small&gt;HDD/SSD inflation&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill&quot;&gt;+26%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;UAV / Drones&lt;/strong&gt;&lt;small&gt;Geopolitical import ban&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill&quot;&gt;+25%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;Servers (All)&lt;/strong&gt;&lt;small&gt;Intel/AMD + USD/INR&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill&quot;&gt;+25%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;DC Switches (Core)&lt;/strong&gt;&lt;small&gt;Semiconductor scarcity&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill&quot;&gt;+24%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;Traffic Radar/ATCS&lt;/strong&gt;&lt;small&gt;Multi-component + radar&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill orange&quot;&gt;+20%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;Field Switches&lt;/strong&gt;&lt;small&gt;Broadcom chip shortage&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill orange&quot;&gt;+22%&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;item&quot;&gt;&lt;div&gt;&lt;strong&gt;UPS / HVAC&lt;/strong&gt;&lt;small&gt;Battery + refrigerant&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;pill amber&quot;&gt;+16%&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+</section>
+<section class="slide-shell" id="slide-4">
+<div class="slide-nav-panel" aria-label="Slide navigation"><a href="#slide-1" class="" data-slide="1">1</a><a href="#slide-2" class="" data-slide="2">2</a><a href="#slide-3" class="" data-slide="3">3</a><a href="#slide-4" class="active" data-slide="4">4</a><a href="#slide-5" class="" data-slide="5">5</a></div>
+
+<iframe class="slide-frame" title="Slide 4" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;title&gt;Slide 4 Option 1 Fixed - Financial Impact by Project Section&lt;/title&gt;
+&lt;style&gt;
+:root{--off:#2E2E38;--g2:#C4C4CD;--white:#fff;--yellow:#FFE600;--gold:#C99718;--blue:#2E8BB4;--green:#1F8A55;--orange:#E46B2A;--red:#C7382F;--card:rgba(255,255,255,.075);--line:rgba(255,255,255,.16);--track:rgba(255,255,255,.095)}
+*{box-sizing:border-box;margin:0;padding:0}body{background:#1e1e24;font-family:&quot;Segoe UI&quot;,Arial,sans-serif;color:var(--white)}
+.slide{width:1280px;height:720px;margin:40px auto;position:relative;overflow:hidden;background:var(--off);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.slide:before{content:&quot;&quot;;position:absolute;inset:0;background:radial-gradient(circle at 78% 20%,rgba(255,230,0,.12),transparent 24%),radial-gradient(circle at 18% 78%,rgba(255,255,255,.045),transparent 30%);z-index:0}.slide:after{content:&quot;&quot;;position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:44px 44px;opacity:.38;z-index:0}.top{position:absolute;top:0;left:0;width:100%;height:7px;background:var(--yellow);z-index:5}.hdr{position:absolute;left:56px;top:34px;right:56px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start}.title h1{font-family:Georgia,serif;font-size:36px;letter-spacing:1.25px;line-height:1.05;color:#fff}.title p{margin-top:12px;color:var(--yellow);font-size:15px}.slide-no{color:var(--g2);font-size:14px;margin-top:16px}.option-label{position:absolute;right:56px;top:12px;color:var(--yellow);z-index:10;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase}.footer{position:absolute;bottom:12px;left:0;width:100%;text-align:center;color:var(--g2);font-size:12.5px;z-index:8}.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06)}
+.content{position:absolute;left:56px;right:56px;top:136px;bottom:58px;z-index:5;display:grid;grid-template-columns:690px 1fr;gap:28px;align-items:stretch}.chart{height:100%;padding:18px 20px 16px;display:flex;flex-direction:column;overflow:hidden}.side{height:100%;display:grid;grid-template-rows:86px 1fr;gap:12px;overflow:hidden}.total{border-radius:16px;background:#111936;border:1px solid rgba(255,230,0,.28);padding:14px 18px;text-align:center;display:flex;flex-direction:column;justify-content:center}.total .label{color:var(--yellow);font-weight:900;font-size:13px;letter-spacing:4px;text-transform:uppercase}.total .value{font-family:Georgia,serif;font-size:25px;font-weight:900;color:#fff;margin-top:8px;letter-spacing:.4px}
+.legend{display:flex;gap:22px;align-items:center;justify-content:flex-end;margin-bottom:18px;flex:0 0 auto}.legend span{display:flex;gap:7px;align-items:center;font-size:12px;color:#eef1fb}.sw{width:12px;height:12px;border-radius:2px}.chart-inner{position:relative;flex:1;min-height:0;padding-bottom:22px}.axis{position:absolute;left:190px;right:34px;top:0;bottom:25px;display:grid;grid-template-columns:repeat(7,1fr);pointer-events:none}.axis i{border-left:1px solid rgba(255,255,255,.115)}.rows{position:relative;z-index:2;height:100%;padding-bottom:25px;display:grid;grid-template-rows:repeat(9,1fr);row-gap:10px}.row{display:grid;grid-template-columns:180px 1fr 42px;gap:10px;align-items:center}.cat{text-align:right;color:#fff;font-size:13px;line-height:1.12}.pair{display:flex;flex-direction:column;gap:5px}.barline{height:11px;border-radius:99px;background:var(--track);overflow:hidden}.bar{height:11px;border-radius:0 999px 999px 0}.val{font-size:11.5px;color:#dfe5f6;font-weight:700}.scale{position:absolute;left:190px;right:34px;bottom:0;height:16px;display:grid;grid-template-columns:repeat(8,1fr);font-size:10.8px;color:#bfc7dc}.scale span:last-child{text-align:right}
+.table-panel{height:100%;overflow:hidden;border-radius:16px}.table-wrap{height:100%;display:flex;flex-direction:column}table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed}th{background:#111936;color:#fff;padding:9px 8px;font-size:12px;text-align:left;line-height:1.1}th:nth-child(n+2),td:nth-child(n+2){text-align:center}td{background:rgba(255,255,255,.055);border-bottom:1px solid rgba(255,255,255,.075);padding:7px 8px;font-size:11.2px;color:#eef1fb;line-height:1.1}td:first-child{font-weight:700;color:#fff}.delta{font-weight:900}.pos{color:#ff7a3c}.low{color:#38c172}
+@media print{body{background:#fff}.slide{margin:0;box-shadow:none;page-break-after:always}}
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no { display:none !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;aptos-footer-fullscreen-override&quot;&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+body, body *, .slide, .slide-wrapper, h1, h2, h3, h4, p, span, div, table, th, td {
+  font-family: Aptos, Arial, sans-serif !important;
+}
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no, .footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+&lt;/style&gt;
+
+&lt;/head&gt;
+&lt;body&gt;
+&lt;section class=&quot;slide&quot;&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;/div&gt;&lt;div class=&quot;option-label&quot;&gt;Option 1 / Fixed&lt;/div&gt;
+&lt;div class=&quot;hdr&quot;&gt;&lt;div class=&quot;title&quot;&gt;&lt;h1&gt;FINANCIAL IMPACT BY PROJECT SECTION&lt;/h1&gt;&lt;p&gt;Section-wise old vs. revised amounts (₹ Crores) and escalation quantum&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;slide-no&quot;&gt;Slide 4 of 5&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;content&quot;&gt;
+  &lt;div class=&quot;panel chart&quot;&gt;
+    &lt;div class=&quot;legend&quot;&gt;&lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--gold)&quot;&gt;&lt;/i&gt;Jun 2026 (₹ Cr)&lt;/span&gt;&lt;span&gt;&lt;i class=&quot;sw&quot; style=&quot;background:var(--blue)&quot;&gt;&lt;/i&gt;Dec 2025 (₹ Cr)&lt;/span&gt;&lt;/div&gt;
+    &lt;div class=&quot;chart-inner&quot;&gt;&lt;div class=&quot;axis&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;OFC / Fiber Network&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:19.3%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:16.9%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;27.0&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;O&amp;M Manpower&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:18.9%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:16.9%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;26.5&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;Platform &amp; Cybersecurity&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:11.2%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:10.1%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;15.7&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;Software &amp; Analytics&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:14.1%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:12.8%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;19.8&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;DC/ICCC Ancillary&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:1.3%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:1.1%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;1.8&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;Data Centre Infrastructure&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:24.3%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:19.6%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;34.0&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;ICCC – Command Centre&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:15.1%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:13.6%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;21.2&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;Mobile Command &amp; Control&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:1.9%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:1.7%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;2.7&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;div class=&quot;cat&quot;&gt;Field Infrastructure&lt;/div&gt;&lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:87.0%;background:var(--gold)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;barline&quot;&gt;&lt;div class=&quot;bar&quot; style=&quot;width:73.6%;background:var(--blue)&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;121.8&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;div class=&quot;scale&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;20&lt;/span&gt;&lt;span&gt;40&lt;/span&gt;&lt;span&gt;60&lt;/span&gt;&lt;span&gt;80&lt;/span&gt;&lt;span&gt;100&lt;/span&gt;&lt;span&gt;120&lt;/span&gt;&lt;span&gt;140&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;side&quot;&gt;
+    &lt;div class=&quot;total&quot;&gt;&lt;div class=&quot;label&quot;&gt;Total Project Value&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;₹229.5 Cr → ₹263.1 Cr&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;panel table-panel&quot;&gt;&lt;div class=&quot;table-wrap&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th style=&quot;width:48%&quot;&gt;Section&lt;/th&gt;&lt;th&gt;Old&lt;br&gt;(₹ Cr)&lt;/th&gt;&lt;th&gt;Jun&lt;br&gt;2026&lt;/th&gt;&lt;th&gt;Δ%&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;
+      &lt;tr&gt;&lt;td&gt;§1 Field Infrastructure&lt;/td&gt;&lt;td&gt;103.0&lt;/td&gt;&lt;td&gt;121.8&lt;/td&gt;&lt;td class=&quot;delta pos&quot;&gt;+18.3%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§2 Mobile Command &amp; Control&lt;/td&gt;&lt;td&gt;2.4&lt;/td&gt;&lt;td&gt;2.7&lt;/td&gt;&lt;td class=&quot;delta pos&quot;&gt;+15.0%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§3 ICCC – Command Centre&lt;/td&gt;&lt;td&gt;19.0&lt;/td&gt;&lt;td&gt;21.2&lt;/td&gt;&lt;td class=&quot;delta low&quot;&gt;+11.6%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§4 Data Centre Infrastructure&lt;/td&gt;&lt;td&gt;27.4&lt;/td&gt;&lt;td&gt;34.0&lt;/td&gt;&lt;td class=&quot;delta pos&quot;&gt;+24.1%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§5 DC/ICCC Ancillary&lt;/td&gt;&lt;td&gt;1.6&lt;/td&gt;&lt;td&gt;1.8&lt;/td&gt;&lt;td class=&quot;delta pos&quot;&gt;+15.3%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§6-8 Software &amp; Analytics&lt;/td&gt;&lt;td&gt;17.9&lt;/td&gt;&lt;td&gt;19.8&lt;/td&gt;&lt;td class=&quot;delta low&quot;&gt;+10.6%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§9 Platform &amp; Cybersecurity&lt;/td&gt;&lt;td&gt;14.2&lt;/td&gt;&lt;td&gt;15.7&lt;/td&gt;&lt;td class=&quot;delta low&quot;&gt;+10.6%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§10 O&amp;M Manpower&lt;/td&gt;&lt;td&gt;23.6&lt;/td&gt;&lt;td&gt;26.5&lt;/td&gt;&lt;td class=&quot;delta low&quot;&gt;+12.3%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;§11 OFC / Fiber Network&lt;/td&gt;&lt;td&gt;23.7&lt;/td&gt;&lt;td&gt;27.0&lt;/td&gt;&lt;td class=&quot;delta low&quot;&gt;+13.9%&lt;/td&gt;&lt;/tr&gt;
+    &lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+&lt;/body&gt;&lt;/html&gt;"></iframe>
+</section>
+<section class="slide-shell" id="slide-5">
+<div class="slide-nav-panel" aria-label="Slide navigation"><a href="#slide-1" class="" data-slide="1">1</a><a href="#slide-2" class="" data-slide="2">2</a><a href="#slide-3" class="" data-slide="3">3</a><a href="#slide-4" class="" data-slide="4">4</a><a href="#slide-5" class="active" data-slide="5">5</a></div>
+
+<iframe class="slide-frame" title="Slide 5" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;title&gt;Slide 5 Option 1 Adjusted - Recommendation &amp; Approval&lt;/title&gt;
+&lt;style&gt;
+:root{
+  --off:#2E2E38;--gray1:#747480;--gray2:#C4C4CD;--black:#000000;--white:#FFFFFF;--yellow:#FFE600;
+  --card:rgba(255,255,255,.075);--line:rgba(196,196,205,.18);--soft:rgba(196,196,205,.10);--dark:rgba(0,0,0,.24)
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1e1e24;font-family:&quot;Segoe UI&quot;,Arial,sans-serif;color:var(--white)}
+.slide{width:1280px;height:720px;margin:40px auto;position:relative;overflow:hidden;background:var(--off);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.slide:before{content:&quot;&quot;;position:absolute;inset:0;background:radial-gradient(circle at 76% 18%,rgba(255,230,0,.13),transparent 24%),radial-gradient(circle at 18% 78%,rgba(255,255,255,.045),transparent 30%);z-index:0}
+.slide:after{content:&quot;&quot;;position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.023) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.023) 1px,transparent 1px);background-size:44px 44px;opacity:.38;z-index:0}
+.top{position:absolute;top:0;left:0;width:100%;height:7px;background:var(--yellow);z-index:5}
+.hdr{position:absolute;left:56px;top:34px;right:56px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start}
+.title h1{font-family:Georgia,serif;font-size:43px;letter-spacing:1.15px;line-height:1;color:#fff}
+.title h2{font-family:Georgia,serif;font-size:27px;letter-spacing:1.05px;color:var(--yellow);margin-top:10px;font-weight:700}
+.title .rule{width:255px;height:5px;background:var(--yellow);margin-top:15px}
+.slide-no{color:var(--gray2);font-size:14px;margin-top:20px}.option-label{position:absolute;right:56px;top:12px;color:var(--yellow);z-index:10;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
+.footer{position:absolute;bottom:10px;left:0;width:100%;text-align:center;color:var(--gray2);font-size:12px;z-index:8}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06)}
+.value{font-family:Georgia,serif;font-weight:900;color:var(--yellow)}.small{color:var(--gray2);font-size:10px}.content{position:absolute;left:56px;right:56px;top:158px;bottom:44px;z-index:5;display:grid;grid-template-rows:122px 1fr 70px;gap:14px}
+.micro{position:absolute;right:64px;top:126px;z-index:7;display:flex;gap:8px}.micro span{border:1px solid var(--line);background:rgba(0,0,0,.22);border-radius:999px;padding:6px 10px;color:var(--gray2);font-size:10.2px}.micro b{color:var(--yellow)}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.kpi{padding:14px 16px;display:grid;grid-template-columns:72px 1fr;gap:15px;align-items:center;position:relative;overflow:hidden}.kpi:before{content:&quot;&quot;;position:absolute;top:0;left:0;height:5px;width:100%;background:var(--yellow);opacity:.95}.iconbox{width:68px;height:68px;border-radius:16px;background:rgba(255,230,0,.10);border:1px solid rgba(255,230,0,.35);display:flex;align-items:center;justify-content:center;color:var(--yellow);font-size:32px;font-weight:900}.donut{width:68px;height:68px;border-radius:50%;background:conic-gradient(var(--yellow) 0 264deg,rgba(196,196,205,.18) 264deg 360deg);display:flex;align-items:center;justify-content:center;position:relative}.donut:after{content:&quot;&quot;;position:absolute;width:49px;height:49px;border-radius:50%;background:#252530}.donut span{position:relative;z-index:2;color:var(--yellow);font-weight:900;font-size:11px}.kpi .value{font-size:30px;line-height:1}.kpi .label{margin-top:7px;color:#fff;font-size:12px;line-height:1.2}.kpi .small{margin-top:6px}
+.middle{display:grid;grid-template-columns:1.12fr .88fr;gap:16px;min-height:0}.basis,.flow{padding:16px 18px;overflow:hidden;background:rgba(0,0,0,.16);border:1px solid var(--line);border-radius:16px;min-height:0}.basis h3,.flow h3{font-size:13px;color:var(--yellow);letter-spacing:4px;text-transform:uppercase;margin-bottom:12px}.basis-grid{height:calc(100% - 27px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}.basis-card{background:var(--soft);border:1px solid var(--line);border-radius:13px;padding:11px;display:grid;grid-template-columns:30px 1fr;gap:10px;min-height:0}.num{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--yellow);color:var(--black);font-weight:900;font-size:12px}.basis-card strong{font-size:12px;color:#fff;line-height:1.15}.basis-card p{font-size:10.4px;line-height:1.25;color:#e7ebf6;margin-top:4px}.process{height:calc(100% - 27px);display:grid;grid-template-rows:repeat(4,1fr);gap:9px}.step{display:grid;grid-template-columns:40px 1fr 28px;gap:11px;align-items:center;background:var(--soft);border:1px solid var(--line);border-radius:13px;padding:9px 10px;min-height:0}.step-icon{width:36px;height:36px;border-radius:50%;background:rgba(255,230,0,.13);border:1px solid rgba(255,230,0,.35);display:flex;align-items:center;justify-content:center;color:var(--yellow);font-weight:900;font-size:16px}.step strong{font-size:12px;color:#fff;line-height:1.1}.step span{display:block;color:var(--gray2);font-size:10.1px;margin-top:3px;line-height:1.15}.arrow{color:var(--yellow);font-size:20px;font-weight:900;text-align:center}
+.request{background:var(--yellow);border-radius:14px;color:var(--black);padding:12px 22px;text-align:center;display:grid;grid-template-columns:50px 1fr 50px;align-items:center;gap:12px;font-family:Georgia,serif;font-weight:900;font-size:15.5px;line-height:1.2}.seal{width:44px;height:44px;border-radius:50%;background:var(--black);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-family:&quot;Segoe UI&quot;;font-size:22px;font-weight:900}.seal.right{justify-self:end}
+@media print{body{background:#fff}.slide{margin:0;box-shadow:none;page-break-after:always}}
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+&lt;/style&gt;
+
+&lt;style&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no { display:none !important; }
+&lt;/style&gt;
+
+&lt;style id=&quot;aptos-footer-fullscreen-override&quot;&gt;
+html, body { margin:0 !important; padding:0 !important; background:#2E2E38 !important; overflow:hidden !important; }
+body, body *, .slide, .slide-wrapper, h1, h2, h3, h4, p, span, div, table, th, td {
+  font-family: Aptos, Arial, sans-serif !important;
+}
+.slide, .slide-wrapper { margin:0 !important; box-shadow:none !important; }
+.option-label, .slide-label, .slide-no, .footer { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+&lt;/style&gt;
+
+&lt;/head&gt;
+&lt;body&gt;
+&lt;section class=&quot;slide&quot;&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;/div&gt;&lt;div class=&quot;option-label&quot;&gt;Option 1 / Adjusted&lt;/div&gt;
+&lt;div class=&quot;hdr&quot;&gt;&lt;div class=&quot;title&quot;&gt;&lt;h1&gt;RECOMMENDATION &amp;&lt;/h1&gt;&lt;h2&gt;REQUEST FOR AUTHORITY APPROVAL&lt;/h2&gt;&lt;div class=&quot;rule&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;slide-no&quot;&gt;Slide 5 of 5&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;micro&quot;&gt;&lt;span&gt;&lt;b&gt;Decision:&lt;/b&gt; Approval&lt;/span&gt;&lt;span&gt;&lt;b&gt;Scope:&lt;/b&gt; All taxes included&lt;/span&gt;&lt;span&gt;&lt;b&gt;Effective:&lt;/b&gt; Jun 2026&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;content&quot;&gt;
+  &lt;div class=&quot;kpis&quot;&gt;
+    &lt;div class=&quot;panel kpi&quot;&gt;&lt;div class=&quot;iconbox&quot;&gt;₹&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;value&quot;&gt;₹33.6 Cr&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Additional Project&lt;br&gt;Cost Implication&lt;/div&gt;&lt;div class=&quot;small&quot;&gt;₹229.5 Cr → ₹263.1 Cr&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;panel kpi&quot;&gt;&lt;div class=&quot;donut&quot;&gt;&lt;span&gt;14.63%&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;value&quot;&gt;+14.63%&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Blended Escalation&lt;br&gt;Weighted Average&lt;/div&gt;&lt;div class=&quot;small&quot;&gt;Across all project sections&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;panel kpi&quot;&gt;&lt;div class=&quot;iconbox&quot;&gt;✓&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;value&quot;&gt;Jun 2026&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Effective Date of&lt;br&gt;Revised Rates&lt;/div&gt;&lt;div class=&quot;small&quot;&gt;Retroactive to issue date&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;middle&quot;&gt;
+    &lt;div class=&quot;basis&quot;&gt;&lt;h3&gt;Basis for approval&lt;/h3&gt;&lt;div class=&quot;basis-grid&quot;&gt;
+      &lt;div class=&quot;basis-card&quot;&gt;&lt;div class=&quot;num&quot;&gt;1&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Documented macro triggers&lt;/strong&gt;&lt;p&gt;RBI exchange rate data, OEM price notifications, and freight benchmarks anchor the revision.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;basis-card&quot;&gt;&lt;div class=&quot;num&quot;&gt;2&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Uniform category-wise factors&lt;/strong&gt;&lt;p&gt;No item-specific discretionary uplift; factors range from +8% civil to +28% storage.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;basis-card&quot;&gt;&lt;div class=&quot;num&quot;&gt;3&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Force-majeure driven escalation&lt;/strong&gt;&lt;p&gt;Escalation is outside MSI purview; rejection may stall procurement and commissioning timelines.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;basis-card&quot;&gt;&lt;div class=&quot;num&quot;&gt;4&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Market benchmark validation&lt;/strong&gt;&lt;p&gt;Rates align with OEM price lists and NIC/GeM portal comparators.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;flow&quot;&gt;&lt;h3&gt;Approval action trail&lt;/h3&gt;&lt;div class=&quot;process&quot;&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;div class=&quot;step-icon&quot;&gt;1&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Validate basis&lt;/strong&gt;&lt;span&gt;Macro triggers + OEM/freight evidence&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;→&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;div class=&quot;step-icon&quot;&gt;2&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Approve revised value&lt;/strong&gt;&lt;span&gt;₹263.1 Cr inclusive of all taxes&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;→&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;div class=&quot;step-icon&quot;&gt;3&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Issue direction to MSI&lt;/strong&gt;&lt;span&gt;Proceed with revised commercial baseline&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;→&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;div class=&quot;step-icon&quot;&gt;4&lt;/div&gt;&lt;div&gt;&lt;strong&gt;Enable procurement continuity&lt;/strong&gt;&lt;span&gt;Reduce risk to commissioning timelines&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;✓&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;request&quot;&gt;&lt;div class=&quot;seal&quot;&gt;✓&lt;/div&gt;&lt;div&gt;The Authority is respectfully requested to approve the revised project value of ₹263.1 Crores&lt;br&gt;(inclusive of all taxes) effective June 2026, and direct the MSI accordingly.&lt;/div&gt;&lt;div class=&quot;seal right&quot;&gt;₹&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+&lt;/body&gt;&lt;/html&gt;"></iframe>
+</section>
+</main>
+<script>
+function goToSlide(n) {
+  const el = document.getElementById('slide-' + n);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+document.addEventListener('keydown', function(e) {
+  const visible = [...document.querySelectorAll('.slide-shell')].reduce((best, el) => {
+    const rect = el.getBoundingClientRect();
+    const score = Math.abs(rect.top + rect.height/2 - window.innerHeight/2);
+    return !best || score < best.score ? {el, score} : best;
+  }, null);
+  const current = visible ? Number(visible.el.id.replace('slide-', '')) : 1;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') goToSlide(Math.min(5, current + 1));
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') goToSlide(Math.max(1, current - 1));
+});
+</script>
+
+<script id="per-slide-fit-nav-script">
+(function(){
+  const BASE_W = 1280;
+  const BASE_H = 720;
+
+  function fitSlides() {
+    const vw = Math.max(320, window.innerWidth);
+    const vh = Math.max(240, window.innerHeight);
+    const scale = Math.min(vw / BASE_W, vh / BASE_H, 1);
+    const scaledW = Math.floor(BASE_W * scale);
+
+    document.querySelectorAll('.slide-shell').forEach(shell => {
+      shell.style.width = scaledW + 'px';
+      shell.style.height = vh + 'px';
+      shell.style.minHeight = vh + 'px';
+    });
+    document.querySelectorAll('.slide-frame').forEach(frame => {
+      frame.style.width = BASE_W + 'px';
+      frame.style.height = BASE_H + 'px';
+      frame.style.transform = 'scale(' + scale + ')';
+      frame.style.transformOrigin = 'top left';
+    });
+  }
+
+  document.querySelectorAll('.slide-nav-panel a').forEach(link => {
+    link.addEventListener('click', function(e){
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  window.addEventListener('load', fitSlides);
+  window.addEventListener('resize', fitSlides);
+  document.addEventListener('DOMContentLoaded', fitSlides);
+  fitSlides();
+})();
+</script>
+
+</body>
+</html>

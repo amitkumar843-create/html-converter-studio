@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Reset Opportunity — EY</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1A1A24;--panel:#0D0D14;--card:#111120;
+  --y:#FFE600;--w:#FFFFFF;--g1:#C4C4CD;--g2:#747480;--g3:#2E2E48;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#0D0D14;font-family:'DM Sans',sans-serif}
+#wrapper{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0D0D14}
+#deck{width:1280px;height:720px;transform-origin:center;position:relative;overflow:hidden}
+
+/* ── Slides ── */
+.slide{position:absolute;inset:0;opacity:0;transform:translateX(60px) scale(.98);
+  transition:opacity .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;overflow:hidden;background:var(--bg)}
+.slide.active{opacity:1;transform:none;pointer-events:all}
+.slide.exit{opacity:0;transform:translateX(-60px) scale(.98)}
+
+/* ── Nav ── */
+#dots{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:99}
+.dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--g2);background:transparent;cursor:pointer;transition:all .3s}
+.dot.on{background:var(--y);border-color:var(--y);transform:scale(1.35)}
+.nav{position:fixed;top:50%;transform:translateY(-50%);width:40px;height:40px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:99;color:var(--g1);font-size:16px;transition:all .2s;user-select:none}
+.nav:hover{background:var(--y);color:var(--panel);border-color:var(--y)}
+#np{left:14px}#nn{right:14px}
+#ctr{position:fixed;bottom:18px;right:22px;font-size:11px;color:var(--g2);z-index:99;letter-spacing:1.5px}
+
+/* ── Shared ── */
+.eylogo{position:absolute;top:16px;right:18px;background:var(--y);color:var(--panel);
+  font-family:'Bebas Neue',sans-serif;font-size:21px;padding:5px 14px;letter-spacing:1px;z-index:10}
+.footer{position:absolute;bottom:0;left:0;right:0;height:32px;background:var(--panel);
+  border-top:3px solid var(--y);display:flex;align-items:center;padding:0 18px;
+  font-size:8.5px;letter-spacing:1px}
+.footer-l{color:var(--g2);flex:1}.footer-r{color:var(--g1)}
+
+/* ── Keyframes ── */
+@keyframes slideUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes growW{from{width:0}to{width:var(--tw)}}
+@keyframes growH{from{height:0}to{height:var(--th)}}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.65;transform:scale(1.06)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ════════════════════════════════════ SLIDE 1 ════ */
+.s1-ybar{position:absolute;top:0;left:0;right:0;height:7px;background:var(--y);
+  transform:scaleX(0);transform-origin:left;transition:transform .7s ease}
+.s1-ybar.on{transform:scaleX(1)}
+.s1-vbar{position:absolute;left:42px;top:108px;width:7px;height:0;background:var(--y);
+  transition:height .8s ease .4s}
+.s1-vbar.on{height:330px}
+.s1-t1{position:absolute;left:72px;top:112px;font-family:'Bebas Neue',sans-serif;
+  font-size:82px;line-height:.95;color:var(--w);letter-spacing:2px;opacity:0}
+.s1-t1.on{animation:slideUp .7s ease .4s forwards}
+.s1-rule{position:absolute;left:72px;top:272px;height:5px;background:var(--y);width:0;
+  transition:width .7s ease 1s}
+.s1-rule.on{width:620px}
+.s1-sub{position:absolute;left:72px;top:290px;width:650px;font-size:15.5px;
+  line-height:1.65;color:var(--g1);opacity:0}
+.s1-sub.on{animation:fadeIn .7s ease 1.2s forwards}
+.s1-date{position:absolute;left:72px;top:390px;font-size:11px;color:var(--g2);
+  letter-spacing:2px;opacity:0}
+.s1-date.on{animation:fadeIn .5s ease 1.5s forwards}
+
+/* Pillar cards */
+.pillars{position:absolute;bottom:44px;left:38px;right:38px;display:flex;gap:14px}
+.pcard{flex:1;height:175px;background:var(--panel);border:1.5px solid var(--y);
+  display:flex;flex-direction:column;align-items:center;padding:14px 10px 10px;
+  position:relative;overflow:hidden;opacity:0;transform:translateY(28px);
+  transition:opacity .5s ease,transform .5s ease,border-color .25s,box-shadow .25s;cursor:default}
+.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--y)}
+.pcard:hover{border-color:var(--w);box-shadow:0 0 24px rgba(255,230,0,.15);transform:translateY(-3px)!important}
+.pcard.on{opacity:1;transform:translateY(0)}
+.pnum{width:32px;height:32px;background:var(--y);border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:700;color:var(--panel);margin-bottom:7px}
+.pttl{font-size:11.5px;font-weight:700;color:var(--w);text-align:center;line-height:1.3;margin-bottom:7px}
+.pdiv{width:80%;height:1px;background:var(--g3);margin-bottom:7px}
+.pstat{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--y);letter-spacing:1px;line-height:1}
+.pslbl{font-size:8.5px;color:var(--g2);text-align:center;margin-top:3px;letter-spacing:.5px}
+
+/* BG dot grid */
+.bgdot{position:absolute;inset:0;
+  background:radial-gradient(circle,rgba(255,230,0,.07) 1px,transparent 1px);
+  background-size:42px 42px;animation:pulse 5s ease-in-out infinite}
+
+/* ════════════════════════════════════ SLIDE 2 ════ */
+.s2h{position:absolute;top:14px;left:38px;font-family:'Bebas Neue',sans-serif;
+  font-size:34px;letter-spacing:2px;color:var(--w);opacity:0}
+.s2h.on{animation:slideIn .5s ease .1s forwards}
+.s2rule{position:absolute;top:54px;left:38px;height:4px;background:var(--y);width:0;
+  transition:width .65s ease .35s}
+.s2rule.on{width:calc(100% - 76px)}
+.s2sub{position:absolute;top:62px;left:38px;font-size:9.5px;color:var(--g2);
+  letter-spacing:1.2px;opacity:0}
+.s2sub.on{animation:fadeIn .5s ease .7s forwards}
+
+.s2grid{position:absolute;top:80px;left:28px;right:28px;bottom:36px;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
+.gcard{background:var(--card);border:1px solid var(--g3);border-top:3px solid var(--y);
+  padding:10px 12px;position:relative;overflow:hidden;opacity:0;
+  transform:scale(.96);transition:opacity .5s ease,transform .5s ease}
+.gcard.on{opacity:1;transform:scale(1)}
+
+.chdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cnum{width:26px;height:26px;background:var(--y);border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700;color:var(--panel);flex-shrink:0}
+.ctit{font-size:12.5px;font-weight:700;color:var(--w)}
+.cdiv{height:1px;background:var(--g3);margin-bottom:9px}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:10px}
+#dnut{flex-shrink:0}
+.dtrack{fill:none;stroke:var(--g3);stroke-width:20}
+.dfill{fill:none;stroke:var(--y);stroke-width:20;
+  stroke-dasharray:201;stroke-dashoffset:171;
+  transform:rotate(-90deg);transform-origin:50% 50%;
+  transition:stroke-dashoffset 1.6s ease .4s}
+.dfill.on{stroke-dashoffset:201}/* starts at 171 (15% shown), this resets; JS sets to target */
+
+.statbig{font-family:'Bebas Neue',sans-serif;font-size:44px;color:var(--y);line-height:1}
+.statlbl{font-size:8.5px;color:var(--g2);margin-top:2px;line-height:1.4}
+
+.blist{list-style:none;margin-top:4px}
+.blist li{font-size:9.5px;color:var(--g1);padding:2px 0 2px 13px;position:relative;line-height:1.4}
+.blist li::before{content:'▸';position:absolute;left:0;color:var(--y);font-size:8px}
+
+/* Progress track */
+.ptlbl{font-size:9px;color:var(--g1);margin:6px 0 3px}
+.ptrak{width:100%;height:11px;background:var(--panel);border:1px solid var(--g3);overflow:hidden}
+.pfill{height:100%;width:0%;background:var(--y);transition:width 1.3s ease .6s}
+.pfill.on{width:var(--pw)}
+.pstat{font-size:8.5px;color:var(--y);margin-top:2px}
+
+/* Cylinders */
+.cylrow{display:flex;justify-content:space-around;align-items:flex-end;padding:4px 8px}
+.cylw{display:flex;flex-direction:column;align-items:center;gap:4px;
+  opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.cylw.on{opacity:1;transform:none}
+.cyllbl{font-size:8.5px;font-weight:600;color:var(--g1);text-align:center}
+.cx{font-size:20px;color:var(--w);font-weight:700;align-self:flex-end;padding-bottom:18px}
+
+/* Process flow */
+.flow{display:flex;align-items:center;margin:6px 0}
+.fstep{flex:1;background:var(--bg);border:1px solid var(--g2);border-top:2px solid var(--g2);
+  padding:5px 3px;text-align:center;font-size:9.5px;font-weight:700;color:var(--w);
+  line-height:1.3;opacity:0;transition:opacity .4s ease}
+.fstep.on{opacity:1}
+.farr{width:28px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  gap:0;opacity:0;transition:opacity .35s ease}
+.farr.on{opacity:1}
+.arrln{width:22px;height:2px;background:var(--g2)}
+.arrhd{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;
+  border-left:8px solid var(--g2);margin-top:-5px;margin-left:1px}
+.arrx{font-size:11px;color:var(--w);font-weight:700;margin-top:-3px;line-height:1}
+
+/* Layer bars */
+.lrow{display:flex;height:26px;margin-bottom:4px;opacity:0;transition:opacity .4s ease}
+.lrow.on{opacity:1}
+.lbar{height:100%;display:flex;align-items:center;padding:0 8px;
+  font-size:8.5px;font-weight:700;white-space:nowrap}
+
+/* ════════════════════════════════════ SLIDE 3 ════ */
+.s3h{position:absolute;top:14px;left:38px;font-family:'Bebas Neue',sans-serif;
+  font-size:34px;letter-spacing:2px;color:var(--w);opacity:0}
+.s3h.on{animation:slideIn .5s ease .1s forwards}
+.s3rule{position:absolute;top:54px;left:38px;height:4px;background:var(--y);width:0;
+  transition:width .65s ease .35s}
+.s3rule.on{width:calc(100% - 76px)}
+
+.hub-area{position:absolute;top:66px;left:0;right:0;bottom:36px;opacity:0;
+  transition:opacity .4s ease .5s}
+.hub-area.on{opacity:1}
+
+/* SVG overlay for lines */
+#hsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cline{fill:none;stroke:var(--y);stroke-width:1.5;stroke-dasharray:620;stroke-dashoffset:620;
+  stroke-linecap:round;transition:stroke-dashoffset .9s ease}
+.cline.on{stroke-dashoffset:0}
+
+/* Hub ellipse */
+#hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-58%);
+  width:226px;height:118px;background:var(--panel);border:2.5px solid var(--y);
+  border-radius:50%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:14px;opacity:0;
+  transition:opacity .5s ease}
+#hub.on{opacity:1}
+.hring1{position:absolute;inset:-14px;border:1px solid rgba(255,230,0,.25);
+  border-radius:50%;animation:pulse 2.2s ease-in-out infinite}
+.hring2{position:absolute;inset:-7px;border:1px solid rgba(255,230,0,.45);
+  border-radius:50%;animation:pulse 2.2s ease-in-out .6s infinite}
+.htxt1{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--y);letter-spacing:1px;line-height:1.3}
+.htxt2{font-size:10px;color:var(--g1);margin-top:3px}
+
+/* Spoke nodes */
+.snode{position:absolute;background:var(--panel);border:1.5px solid var(--y);
+  border-left:4px solid var(--y);padding:10px 11px 10px 13px;width:215px;
+  opacity:0;transform:scale(.9);transition:opacity .5s ease,transform .5s ease}
+.snode.on{opacity:1;transform:scale(1)}
+.snhd{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.snnum{width:22px;height:22px;background:var(--y);border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--panel)}
+.snttl{font-size:11px;font-weight:700;color:var(--y);line-height:1.3}
+.sndiv{height:1px;background:var(--g3);margin-bottom:5px}
+.snp{font-size:9px;color:var(--g1);padding:2px 0 2px 11px;position:relative;line-height:1.4}
+.snp::before{content:'→';position:absolute;left:0;color:var(--y);font-size:8px}
+
+/* Stat badges */
+.sbadge{position:absolute;background:var(--panel);border:1px solid var(--y);
+  padding:4px 9px;text-align:center;opacity:0;
+  transform:scale(.8);transition:opacity .5s ease,transform .5s ease}
+.sbadge.on{opacity:1;transform:scale(1)}
+.sbval{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--y);line-height:1}
+.sblbl{font-size:7px;color:var(--g1);line-height:1.3;margin-top:1px}
+
+/* ════════════════════════════════════ SLIDE 4 ════ */
+.s4top{position:absolute;top:0;left:0;right:0;height:7px;background:var(--y)}
+.s4h{position:absolute;top:14px;left:38px;font-family:'Bebas Neue',sans-serif;
+  font-size:34px;letter-spacing:2px;color:var(--w);opacity:0}
+.s4h.on{animation:slideIn .5s ease .1s forwards}
+.s4rule{position:absolute;top:54px;left:38px;height:4px;background:var(--y);width:0;
+  transition:width .65s ease .35s}
+.s4rule.on{width:calc(100% - 76px)}
+
+/* Chevron */
+.chevrow{position:absolute;top:70px;left:38px;right:38px;height:76px;display:flex}
+.chcur{flex:1;background:var(--card);border:1.5px solid var(--g2);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--g1);padding:0 8px 0 14px;
+  opacity:0;transition:opacity .5s ease .25s}
+.chcur.on{opacity:1}
+.chtgt{flex:1.6;background:var(--card);border:2px solid var(--y);
+  clip-path:polygon(18px 0,100% 0,100% 100%,18px 100%,0 50%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--y);padding:0 14px 0 32px;
+  margin-left:-18px;opacity:0;transition:opacity .5s ease .5s}
+.chtgt.on{opacity:1}
+
+/* KPI cards */
+.krow{position:absolute;top:158px;left:38px;right:38px;display:flex;gap:13px}
+.kcard{flex:1;background:var(--card);border:1.5px solid var(--y);padding:9px 12px;
+  opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
+.kcard.on{opacity:1;transform:none}
+.kcard::before{content:'';display:block;height:3px;background:var(--y);margin-bottom:7px}
+.kval{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--y);line-height:1}
+.klbl{font-size:9px;color:var(--g1);margin-top:5px;line-height:1.4}
+
+/* Comparison bars */
+.barsec{position:absolute;top:258px;left:38px;right:38px}
+.blegend{display:flex;align-items:center;gap:16px;margin-bottom:8px;font-size:9px}
+.bleg-item{display:flex;align-items:center;gap:5px}
+.bleg-box{width:16px;height:8px}
+.bleg-txt-b{color:var(--g2)}.bleg-txt-a{color:var(--y);font-weight:700}
+.br{margin-bottom:11px;opacity:0;transition:opacity .45s ease}
+.br.on{opacity:1}
+.brlbl{font-size:9.5px;color:var(--g1);margin-bottom:3px;font-weight:500}
+.btracks{display:flex;flex-direction:column;gap:3px}
+.bb,.ba{height:14px;position:relative;border:1px solid var(--g3);overflow:hidden;background:var(--panel)}
+.bfill{position:absolute;left:0;top:0;bottom:0;width:0;transition:width 1.2s ease}
+.bb .bfill{background:var(--g2)}
+.ba .bfill{background:var(--y)}
+.btxt{position:relative;z-index:1;font-size:7.5px;padding:0 5px;line-height:14px}
+.bb .btxt{color:var(--g1)}.ba .btxt{color:var(--panel);font-weight:700}
+
+/* Quote */
+.qwrap{position:absolute;bottom:46px;left:38px;right:38px;display:flex;gap:12px;
+  opacity:0;transition:opacity .8s ease}
+.qwrap.on{opacity:1}
+.qbar{width:5px;flex-shrink:0;background:var(--y);border-radius:2px}
+.qtxt{font-size:13.5px;line-height:1.65;color:var(--g1)}
+.qtxt .em{color:var(--w)}.qtxt .hl{color:var(--y);font-weight:700}
+.s4qa{position:absolute;bottom:40px;right:38px;text-align:right;opacity:0;
+  transition:opacity .5s ease 1.1s}
+.s4qa.on{opacity:1}
+.qaline{height:2px;background:var(--y);margin-bottom:4px}
+.qatxt{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--w);letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<!-- Nav dots -->
+<div id="dots">
+  <div class="dot on" onclick="goTo(0)"></div>
+  <div class="dot" onclick="goTo(1)"></div>
+  <div class="dot" onclick="goTo(2)"></div>
+  <div class="dot" onclick="goTo(3)"></div>
+</div>
+<div id="ctr">01 / 04</div>
+<div class="nav" id="np" onclick="prev()">&#8592;</div>
+<div class="nav" id="nn" onclick="next()">&#8594;</div>
+
+<div id="wrapper">
+ <div id="deck">
+
+<!-- ══════════════ SLIDE 1: COVER ══════════════ -->
+<div class="slide active" id="s1">
+  <div class="bgdot"></div>
+  <div class="s1-ybar"></div>
+  <div class="eylogo">EY</div>
+  <div class="s1-vbar"></div>
+  <div class="s1-t1">THE RESET<br>OPPORTUNITY</div>
+  <div class="s1-rule"></div>
+  <div class="s1-sub">Converting existing surveillance and traffic infrastructure<br>
+    into a unified intelligence, enforcement, safety and revenue<br>realization engine.</div>
+  <div class="s1-date">JUNE 2026 &nbsp;·&nbsp; EY ADVISORY</div>
+
+  <div class="pillars">
+    <div class="pcard"><div class="pnum">01</div><div class="pttl">Predictive<br>Policing</div>
+      <div class="pdiv"></div><div class="pstat">85%</div><div class="pslbl">DATA UNREALIZED</div></div>
+    <div class="pcard"><div class="pnum">02</div><div class="pttl">Revenue<br>Realization</div>
+      <div class="pdiv"></div><div class="pstat">₹1T+</div><div class="pslbl">PENDING RECOVERY</div></div>
+    <div class="pcard"><div class="pnum">03</div><div class="pttl">Unified<br>Data Lake</div>
+      <div class="pdiv"></div><div class="pstat">6→1</div><div class="pslbl">SYSTEMS UNIFIED</div></div>
+    <div class="pcard"><div class="pnum">04</div><div class="pttl">Highway<br>Safety (NHAI)</div>
+      <div class="pdiv"></div><div class="pstat">50%↓</div><div class="pslbl">ACCIDENT REDUCTION</div></div>
+  </div>
+  <div class="footer"><span class="footer-l">EY CONFIDENTIAL · JUNE 2026</span><span class="footer-r">1 OF 4</span></div>
+</div>
+
+<!-- ══════════════ SLIDE 2: SILO PROBLEM ══════════════ -->
+<div class="slide" id="s2">
+  <div class="eylogo">EY</div>
+  <div class="s2h">CURRENT ARCHITECTURE: THE SILO PROBLEM</div>
+  <div class="s2rule"></div>
+  <div class="s2sub">FOUR CRITICAL GAPS · REACTIVE · FRAGMENTED · SILOED · MONITORING-ONLY</div>
+
+  <div class="s2grid">
+    <!-- TL: Reactive Policing -->
+    <div class="gcard" id="gc1">
+      <div class="chdr"><div class="cnum">01</div><div class="ctit">Reactive Policing</div></div>
+      <div class="cdiv"></div>
+      <div class="donut-wrap">
+        <svg id="dnut" width="108" height="108" viewBox="0 0 100 100">
+          <circle class="dtrack" cx="50" cy="50" r="32"/>
+          <circle fill="none" stroke="#747480" stroke-width="20" cx="50" cy="50" r="32"
+            stroke-dasharray="201" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+          <circle id="dfl" fill="none" stroke="#FFE600" stroke-width="20" cx="50" cy="50" r="32"
+            stroke-dasharray="201" stroke-dashoffset="171" transform="rotate(-90 50 50)"
+            style="transition:stroke-dashoffset 1.6s ease .5s"/>
+          <text x="50" y="46" text-anchor="middle" fill="#FFE600" font-family="Bebas Neue,sans-serif" font-size="18">85%</text>
+          <text x="50" y="59" text-anchor="middle" fill="#747480" font-size="9">UNUSED</text>
+        </svg>
+        <div>
+          <ul class="blist">
+            <li>CCTV metadata not converted to intelligence</li>
+            <li>No hotspot or pattern detection</li>
+            <li>No patrol route optimization</li>
+            <li>Reactive post-incident review only</li>
+          </ul>
+          <div class="ptlbl">Actionable intelligence rate</div>
+          <div class="ptrak"><div class="pfill" id="p1" style="--pw:15%"></div></div>
+          <div class="pstat">15% current · Target: 80%+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TR: Data Fragmentation -->
+    <div class="gcard" id="gc2">
+      <div class="chdr"><div class="cnum">02</div><div class="ctit">Data Fragmentation</div></div>
+      <div class="cdiv"></div>
+      <div class="cylrow">
+        <div class="cylw" id="cy1">
+          <svg width="62" height="88" viewBox="0 0 62 88">
+            <rect x="4" y="20" width="54" height="52" fill="#0D0D14" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="72" rx="27" ry="8" fill="#1A1A24" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="20" rx="27" ry="8" fill="#FFE600"/>
+          </svg>
+          <div class="cyllbl">FIR / Crime<br>Database</div>
+        </div>
+        <div class="cx">╳</div>
+        <div class="cylw" id="cy2">
+          <svg width="62" height="88" viewBox="0 0 62 88">
+            <rect x="4" y="20" width="54" height="52" fill="#0D0D14" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="72" rx="27" ry="8" fill="#1A1A24" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="20" rx="27" ry="8" fill="#FFE600"/>
+          </svg>
+          <div class="cyllbl">Traffic &amp;<br>Violations</div>
+        </div>
+        <div class="cx">╳</div>
+        <div class="cylw" id="cy3">
+          <svg width="62" height="88" viewBox="0 0 62 88">
+            <rect x="4" y="20" width="54" height="52" fill="#0D0D14" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="72" rx="27" ry="8" fill="#1A1A24" stroke="#FFE600" stroke-width="1.5"/>
+            <ellipse cx="31" cy="20" rx="27" ry="8" fill="#FFE600"/>
+          </svg>
+          <div class="cyllbl">Location<br>Intelligence</div>
+        </div>
+      </div>
+      <div class="ptlbl">Cross-database integration level</div>
+      <div class="ptrak"><div class="pfill" id="p2" style="--pw:0%"></div></div>
+      <div class="pstat">0% · Systems operate in complete silos</div>
+    </div>
+
+    <!-- BL: Fragmented E-Challan -->
+    <div class="gcard" id="gc3">
+      <div class="chdr"><div class="cnum">03</div><div class="ctit">Fragmented E-Challan</div></div>
+      <div class="cdiv"></div>
+      <div class="flow">
+        <div class="fstep" id="fs1">ANPR<br>Detect</div>
+        <div class="farr" id="fa1">
+          <div class="arrln"></div>
+          <div style="display:flex;align-items:center;gap:0"><div class="arrhd"></div></div>
+          <div class="arrx">✗</div>
+        </div>
+        <div class="fstep" id="fs2">Field<br>Device</div>
+        <div class="farr" id="fa2">
+          <div class="arrln"></div>
+          <div style="display:flex;align-items:center;gap:0"><div class="arrhd"></div></div>
+          <div class="arrx">✗</div>
+        </div>
+        <div class="fstep" id="fs3">Payment<br>Portal</div>
+      </div>
+      <div class="ptlbl">Revenue recovery rate</div>
+      <div class="ptrak"><div class="pfill" id="p3" style="--pw:28%"></div></div>
+      <div class="pstat">28% · ₹1000Cr+ pending · No real-time defaulter alerts</div>
+      <ul class="blist" style="margin-top:6px">
+        <li>Closure tracking &amp; reconciliation broken</li>
+        <li>Field officers lack real-time visibility</li>
+      </ul>
+    </div>
+
+    <!-- BR: Monitoring-Only Highways -->
+    <div class="gcard" id="gc4">
+      <div class="chdr"><div class="cnum">04</div><div class="ctit">Monitoring-Only Highways</div></div>
+      <div class="cdiv"></div>
+      <div id="lrs">
+        <div class="lrow" id="lr1"><div class="lbar" style="background:#FFE600;color:#0D0D14;width:100%">MISSING · Incident Management</div></div>
+        <div class="lrow" id="lr2"><div class="lbar" style="background:#FFE600;color:#0D0D14;width:100%">MISSING · Speed Enforcement</div></div>
+        <div class="lrow" id="lr3"><div class="lbar" style="background:#747480;color:#fff;width:100%">PARTIAL · Highway Patrol Response · 30%</div></div>
+        <div class="lrow" id="lr4"><div class="lbar" style="background:#747480;color:#fff;width:100%">PARTIAL · FASTag / Toll Integration · 40%</div></div>
+        <div class="lrow" id="lr5"><div class="lbar" style="background:#C4C4CD;color:#0D0D14;width:100%">PRESENT · Basic CCTV Monitoring · 90%</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span class="footer-l">EY CONFIDENTIAL · JUNE 2026</span><span class="footer-r">2 OF 4</span></div>
+</div>
+
+<!-- ══════════════ SLIDE 3: HUB & SPOKE ══════════════ -->
+<div class="slide" id="s3">
+  <div class="eylogo">EY</div>
+  <div class="s3h">TARGET STATE: THE UNIFIED RESET</div>
+  <div class="s3rule"></div>
+
+  <div class="hub-area" id="harea">
+    <!-- SVG line overlay -->
+    <svg id="hsvg" viewBox="0 0 1280 614">
+      <!-- Lines: node centers → hub center(640,295) -->
+      <!-- TL node center ~(118,88), TR ~(1162,88), BL ~(118,522), BR ~(1162,522) -->
+      <line id="cl1" class="cline" x1="118" y1="88" x2="540" y2="260"/>
+      <line id="cl2" class="cline" x1="1162" y1="88" x2="740" y2="260"/>
+      <line id="cl3" class="cline" x1="118" y1="522" x2="540" y2="336"/>
+      <line id="cl4" class="cline" x1="1162" y1="522" x2="740" y2="336"/>
+    </svg>
+
+    <!-- Hub -->
+    <div id="hub">
+      <div class="hring1"></div><div class="hring2"></div>
+      <div class="htxt1">UNIFIED INTELLIGENCE<br>&amp; ENFORCEMENT</div>
+      <div class="htxt2">PLATFORM</div>
+    </div>
+
+    <!-- Spoke nodes -->
+    <div class="snode" id="sn1" style="left:16px;top:8px">
+      <div class="snhd"><div class="snnum">01</div><div class="snttl">Proactive Policing</div></div>
+      <div class="sndiv"></div>
+      <div class="snp">Metadata → actionable intelligence</div>
+      <div class="snp">Crime hotspot &amp; suspect tracking</div>
+      <div class="snp">Reactive → proactive prevention</div>
+    </div>
+    <div class="snode" id="sn2" style="right:16px;top:8px">
+      <div class="snhd"><div class="snnum">02</div><div class="snttl">E-Challan Integration</div></div>
+      <div class="sndiv"></div>
+      <div class="snp">Auto generation to final closure</div>
+      <div class="snp">Real-time defaulter alerts</div>
+      <div class="snp">Measurable revenue recovery</div>
+    </div>
+    <div class="snode" id="sn3" style="left:16px;bottom:8px">
+      <div class="snhd"><div class="snnum">03</div><div class="snttl">Unified Data Lake</div></div>
+      <div class="sndiv"></div>
+      <div class="snp">Break silos: Person + Vehicle + Location</div>
+      <div class="snp">Cross-search &amp; rapid case linkage</div>
+      <div class="snp">Single intelligence layer for all</div>
+    </div>
+    <div class="snode" id="sn4" style="right:16px;bottom:8px">
+      <div class="snhd"><div class="snnum">04</div><div class="snttl">Highway Safety (NHAI)</div></div>
+      <div class="sndiv"></div>
+      <div class="snp">Real-time speed &amp; wrong-way detection</div>
+      <div class="snp">Corridor tracking via ANPR &amp; FASTag</div>
+      <div class="snp">Automated incident response alerts</div>
+    </div>
+
+    <!-- Stat badges positioned along connector lines -->
+    <div class="sbadge" id="sb1" style="left:265px;top:145px">
+      <div class="sbval">3×</div><div class="sblbl">FASTER DETECTION</div></div>
+    <div class="sbadge" id="sb2" style="right:265px;top:145px">
+      <div class="sbval">80%</div><div class="sblbl">REVENUE RECOVERY</div></div>
+    <div class="sbadge" id="sb3" style="left:265px;bottom:135px">
+      <div class="sbval">60%</div><div class="sblbl">FASTER INVESTIGATION</div></div>
+    <div class="sbadge" id="sb4" style="right:265px;bottom:135px">
+      <div class="sbval">50%↓</div><div class="sblbl">ACCIDENT REDUCTION</div></div>
+  </div>
+
+  <div class="footer"><span class="footer-l">EY CONFIDENTIAL · JUNE 2026</span><span class="footer-r">3 OF 4</span></div>
+</div>
+
+<!-- ══════════════ SLIDE 4: EXECUTIVE SUMMARY ══════════════ -->
+<div class="slide" id="s4">
+  <div class="s4top"></div>
+  <div class="eylogo">EY</div>
+  <div class="s4h">EXECUTIVE SUMMARY</div>
+  <div class="s4rule"></div>
+
+  <!-- Chevron -->
+  <div class="chevrow">
+    <div class="chcur" id="chc">Existing Infrastructure Silos</div>
+    <div class="chtgt" id="cht">Unified Intelligence &amp; Enforcement Platform</div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="krow">
+    <div class="kcard" id="kc1" style="transition-delay:.2s">
+      <div class="kval">85%→15%</div><div class="klbl">Metadata →<br>Intelligence</div></div>
+    <div class="kcard" id="kc2" style="transition-delay:.32s">
+      <div class="kval">₹1T+</div><div class="klbl">Revenue<br>Recovery Target</div></div>
+    <div class="kcard" id="kc3" style="transition-delay:.44s">
+      <div class="kval">6 → 1</div><div class="klbl">Systems<br>Consolidated</div></div>
+    <div class="kcard" id="kc4" style="transition-delay:.56s">
+      <div class="kval">50% ↓</div><div class="klbl">Accident<br>Reduction Goal</div></div>
+  </div>
+
+  <!-- Before/After comparison bars -->
+  <div class="barsec">
+    <div class="blegend" style="color:var(--w);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:10px">
+      PERFORMANCE COMPARISON &nbsp;&nbsp;
+      <div class="bleg-item"><div class="bleg-box" style="background:var(--g2)"></div><span class="bleg-txt-b">Before</span></div>
+      <div class="bleg-item"><div class="bleg-box" style="background:var(--y)"></div><span class="bleg-txt-a">After (Target)</span></div>
+    </div>
+    <div class="br" id="br1" style="transition-delay:.55s">
+      <div class="brlbl">Crime Detection Speed</div>
+      <div class="btracks">
+        <div class="bb"><div class="bfill" style="--fp:20%"></div><span class="btxt">Before: 20%</span></div>
+        <div class="ba"><div class="bfill" style="--fp:75%"></div><span class="btxt">After: 75%</span></div>
+      </div>
+    </div>
+    <div class="br" id="br2" style="transition-delay:.67s">
+      <div class="brlbl">Challan Revenue Recovery</div>
+      <div class="btracks">
+        <div class="bb"><div class="bfill" style="--fp:28%"></div><span class="btxt">Before: 28%</span></div>
+        <div class="ba"><div class="bfill" style="--fp:85%"></div><span class="btxt">After: 85%</span></div>
+      </div>
+    </div>
+    <div class="br" id="br3" style="transition-delay:.79s">
+      <div class="brlbl">Investigation Efficiency</div>
+      <div class="btracks">
+        <div class="bb"><div class="bfill" style="--fp:25%"></div><span class="btxt">Before: 25%</span></div>
+        <div class="ba"><div class="bfill" style="--fp:80%"></div><span class="btxt">After: 80%</span></div>
+      </div>
+    </div>
+    <div class="br" id="br4" style="transition-delay:.91s">
+      <div class="brlbl">Highway Safety Enforcement</div>
+      <div class="btracks">
+        <div class="bb"><div class="bfill" style="--fp:15%"></div><span class="btxt">Before: 15%</span></div>
+        <div class="ba"><div class="bfill" style="--fp:72%"></div><span class="btxt">After: 72%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quote -->
+  <div class="qwrap" id="qw">
+    <div class="qbar"></div>
+    <div class="qtxt">"The reset opportunity is to convert
+      <span class="em">existing surveillance, ANPR and traffic infrastructure</span>
+      into a <span class="hl">unified intelligence, enforcement, safety and revenue realization platform."</span>
+    </div>
+  </div>
+  <div class="s4qa" id="s4qa"><div class="qaline"></div><div class="qatxt">THANK YOU · Q &amp; A</div></div>
+
+  <div class="footer"><span class="footer-l">EY CONFIDENTIAL · JUNE 2026</span><span class="footer-r">4 OF 4</span></div>
+</div>
+
+ </div><!-- /deck -->
+</div><!-- /wrapper -->
+
+<script>
+const TOTAL=4; let cur=0;
+
+// Scale deck to viewport
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  document.getElementById('deck').style.transform=`scale(${Math.min(w/1280,h/720)})`;
+}
+window.addEventListener('resize',resize); resize();
+
+// Get all animated elements within a slide and reset their .on class
+function resetAnims(si){
+  document.querySelectorAll(`#s${si+1} [class*="on"]`).forEach(el=>{
+    // Don't touch elements that don't use .on for animation triggers
+  });
+}
+
+function $ (id){return document.getElementById(id)}
+function on(id,delay=0){
+  const el=$(id)||document.querySelector(id);
+  if(!el)return;
+  el.classList.remove('on');
+  void el.offsetWidth;
+  if(delay)setTimeout(()=>el.classList.add('on'),delay);
+  else el.classList.add('on');
+}
+function onQ(sel,delay=0){
+  const el=document.querySelector(sel);
+  if(!el)return;
+  el.classList.remove('on');
+  void el.offsetWidth;
+  if(delay)setTimeout(()=>el.classList.add('on'),delay);
+  else el.classList.add('on');
+}
+
+// Navigation
+function goTo(n){
+  const slides=document.querySelectorAll('.slide');
+  const dots=document.querySelectorAll('.dot');
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit');
+  const prev=cur; cur=n;
+  setTimeout(()=>slides[prev].classList.remove('exit'),600);
+  slides[cur].classList.add('active');
+  dots.forEach((d,i)=>d.classList.toggle('on',i===cur));
+  $('ctr').textContent=String(cur+1).padStart(2,'0')+' / 04';
+  $('np').style.opacity=cur===0?'0.3':'1';
+  $('nn').style.opacity=cur===TOTAL-1?'0.3':'1';
+  setTimeout(()=>runAnims(cur),120);
+}
+function next(){if(cur<TOTAL-1)goTo(cur+1);}
+function prev(){if(cur>0)goTo(cur-1);}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next();}
+  if(e.key==='ArrowLeft'){e.preventDefault();prev();}
+  if(e.key>='1'&&e.key<='4')goTo(+e.key-1);
+});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});
+document.addEventListener('touchend',e=>{
+  const d=tx-e.changedTouches[0].clientX;
+  if(Math.abs(d)>50){if(d>0)next();else prev();}
+});
+
+// Animations per slide
+function runAnims(n){
+  if(n===0)anim1();
+  if(n===1)anim2();
+  if(n===2)anim3();
+  if(n===3)anim4();
+}
+
+function anim1(){
+  onQ('.s1-ybar',0); onQ('.s1-vbar',0); onQ('.s1-t1',0);
+  onQ('.s1-rule',0); onQ('.s1-sub',0); onQ('.s1-date',0);
+  document.querySelectorAll('.pcard').forEach((p,i)=>{
+    p.style.transition=`opacity .5s ease ${1.3+i*.12}s, transform .5s ease ${1.3+i*.12}s, border-color .25s, box-shadow .25s`;
+    p.classList.remove('on'); void p.offsetWidth; p.classList.add('on');
+  });
+}
+
+function anim2(){
+  onQ('.s2h',0); onQ('.s2rule',0); onQ('.s2sub',0);
+  ['gc1','gc2','gc3','gc4'].forEach((id,i)=>{
+    const el=$(id); if(!el)return;
+    el.style.transitionDelay=`${.15+i*.15}s`;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  });
+  // Donut fill animation: from 171 (15% shown from start) animate to 171 (stays there)
+  // Actually: dashoffset 171 = 201*(1-0.15) = 170.85, meaning 15% of circle is drawn
+  setTimeout(()=>{
+    const df=$('dfl');
+    if(df){df.style.strokeDashoffset='171';} // keep 15% shown
+  },600);
+  setTimeout(()=>on('p1'),500);
+  setTimeout(()=>on('p3'),800);
+  ['cy1','cy2','cy3'].forEach((id,i)=>setTimeout(()=>on(id),550+i*140));
+  ['fs1','fa1','fs2','fa2','fs3'].forEach((id,i)=>setTimeout(()=>on(id),700+i*130));
+  ['lr1','lr2','lr3','lr4','lr5'].forEach((id,i)=>setTimeout(()=>on(id),350+i*110));
+}
+
+function anim3(){
+  onQ('.s3h',0); onQ('.s3rule',0);
+  on('harea',0);
+  setTimeout(()=>on('hub'),400);
+  ['cl1','cl2','cl3','cl4'].forEach((id,i)=>setTimeout(()=>on(id),500+i*110));
+  ['sn1','sn2','sn3','sn4'].forEach((id,i)=>setTimeout(()=>on(id),850+i*110));
+  ['sb1','sb2','sb3','sb4'].forEach((id,i)=>setTimeout(()=>on(id),1350+i*90));
+}
+
+function anim4(){
+  onQ('.s4h',0); onQ('.s4rule',0);
+  on('chc',0); on('cht',0);
+  ['kc1','kc2','kc3','kc4'].forEach((id,i)=>{
+    const el=$(id); if(!el)return;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  });
+  ['br1','br2','br3','br4'].forEach((id,i)=>{
+    const el=$(id); if(!el)return;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  });
+  // Animate bar fills
+  setTimeout(()=>{
+    document.querySelectorAll('.bfill').forEach(f=>{
+      const pct=f.style.getPropertyValue('--fp');
+      f.style.width='0%'; void f.offsetWidth;
+      f.style.transition='width 1.2s ease';
+      f.style.width=pct;
+    });
+  },900);
+  setTimeout(()=>on('qw'),1300);
+  setTimeout(()=>on('s4qa'),1700);
+}
+
+// Init
+window.addEventListener('load',()=>{resize();setTimeout(()=>anim1(),300);});
+$('np').style.opacity='0.3';
+</script>
+</body>
+</html>

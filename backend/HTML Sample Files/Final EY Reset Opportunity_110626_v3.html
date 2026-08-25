@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EY Reset Opportunity Presentation</title>
+
+  <link rel="icon" type="image/png" href="your-ey-logo.png" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <style>
+    :root{
+      --ey-off-black:#2E2E38;
+      --ey-grey-01:#747480;
+      --ey-grey-02:#C4C4CD;
+      --ey-black:#000000;
+      --ey-white:#FFFFFF;
+      --ey-yellow:#FFE600;
+    }
+
+    *{box-sizing:border-box;}
+
+    html, body {
+      width:100%;
+      height:100%;
+      margin:0;
+      background:#000;
+      overflow:hidden;
+      font-family:"Segoe UI", Arial, sans-serif;
+      color:var(--ey-white);
+    }
+
+    /* Strict 1280x720 scalable container */
+    #presentation-container {
+      width:1280px;
+      height:720px;
+      position:fixed;
+      left:50%;
+      top:50%;
+      background:var(--ey-off-black);
+      transform-origin:center center;
+      overflow:hidden;
+      contain:layout size;
+      transform:translate(-50%, -50%) scale(0.5);
+    }
+
+    /* ---------- Navigation ---------- */
+    .nav{
+      position:absolute;
+      top:14px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      gap:8px;
+      z-index:1000;
+    }
+
+    .nav button,
+    .top-right button{
+      min-height:32px;
+      border:1px solid rgba(255,255,255,0.16);
+      background:rgba(255,255,255,0.06);
+      color:var(--ey-white);
+      padding:7px 11px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:11px;
+      box-shadow:0 6px 14px rgba(0,0,0,0.22);
+      transition:all .22s ease;
+      touch-action:manipulation;
+      backdrop-filter:blur(8px);
+    }
+
+    .nav button:hover,
+    .top-right button:hover{
+      transform:translateY(-2px);
+      border-color:rgba(255,230,0,0.7);
+    }
+
+    .nav button.active-btn{
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      border-color:var(--ey-yellow);
+    }
+
+    .top-right{
+      position:absolute;
+      top:14px;
+      right:16px;
+      z-index:1000;
+      display:flex;
+      gap:8px;
+    }
+
+    .counter{
+      position:absolute;
+      top:51px;
+      right:16px;
+      z-index:1000;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.16);
+      font-size:10px;
+      font-weight:800;
+      color:var(--ey-grey-02);
+      backdrop-filter:blur(8px);
+    }
+
+    .progress-wrap{
+      position:absolute;
+      left:0;
+      bottom:0;
+      width:100%;
+      height:4px;
+      background:rgba(255,255,255,0.08);
+      z-index:1000;
+    }
+
+    .progress-bar{
+      width:0%;
+      height:100%;
+      background:var(--ey-yellow);
+      transition:width .35s ease;
+    }
+
+    /* ---------- Base slide ---------- */
+    .slide{
+      width:1280px;
+      height:720px;
+      position:absolute;
+      top:0;
+      left:0;
+      display:none;
+      overflow:hidden;
+      padding:64px 48px 42px 48px;
+      background:var(--ey-off-black);
+    }
+
+    .slide.active{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* ---------- Background ---------- */
+    .bg-wrap{
+      position:absolute;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    .bg-top-bar{
+      position:absolute;
+      top:20px;
+      left:26px;
+      width:240px;
+      height:3px;
+      background:linear-gradient(90deg,var(--ey-yellow) 0%, var(--ey-white) 100%);
+      opacity:.95;
+    }
+
+    .bg-frame-top{
+      position:absolute;
+      top:58px;
+      left:26px;
+      right:36px;
+      height:1px;
+      background:linear-gradient(90deg,var(--ey-yellow) 0%, var(--ey-grey-02) 45%, var(--ey-white) 100%);
+      opacity:.9;
+    }
+
+    .bg-frame-left{
+      position:absolute;
+      top:58px;
+      left:26px;
+      bottom:26px;
+      width:1px;
+      background:linear-gradient(180deg,rgba(255,255,255,.7) 0%, rgba(255,255,255,.95) 70%, rgba(255,255,255,.4) 100%);
+    }
+
+    .bg-noise,
+    .bg-grid,
+    .bg-soft-glow{
+      position:absolute;
+      inset:0;
+    }
+
+    .bg-grid{
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size:32px 32px;
+      opacity:.25;
+    }
+
+    .bg-soft-glow{
+      background:
+        radial-gradient(circle at 20% 16%, rgba(255,230,0,0.08) 0%, rgba(255,230,0,0) 27%),
+        radial-gradient(circle at 84% 8%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 26%),
+        radial-gradient(circle at 78% 82%, rgba(255,230,0,0.06) 0%, rgba(255,230,0,0) 22%);
+      opacity:1;
+    }
+
+    .page-chip{
+      position:absolute;
+      left:11px;
+      bottom:12px;
+      width:24px;
+      height:48px;
+      border:1px solid var(--ey-yellow);
+      transform:rotate(180deg);
+      clip-path:polygon(50% 0%, 100% 22%, 100% 78%, 50% 100%, 0% 78%, 0% 22%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:2;
+      color:var(--ey-white);
+      font-size:8px;
+      font-weight:800;
+      letter-spacing:.3px;
+      background:rgba(46,46,56,0.8);
+      writing-mode:vertical-rl;
+      text-orientation:mixed;
+      padding:4px 0;
+    }
+
+    .ey-mark{
+      position:absolute;
+      right:18px;
+      bottom:14px;
+      z-index:2;
+    }
+
+    .ey-logo-spaced{
+      position:relative;
+      display:inline-block;
+    }
+
+    .ey-logo-spaced .beam{
+      width:100%;
+      height:10px;
+      background-color:var(--ey-yellow);
+      clip-path:polygon(0 100%, 100% 0, 100% 100%);
+      margin-bottom:2px;
+    }
+
+    .ey-logo-spaced .text{
+      font-size:27px;
+      font-weight:900;
+      color:var(--ey-white);
+      line-height:.8;
+      letter-spacing:-1.2px;
+      margin:0;
+    }
+
+    .content-wrap{
+      position:relative;
+      z-index:3;
+      width:100%;
+      max-width:1060px;
+      margin:0 auto;
+      padding:0 8px 0 28px;
+    }
+
+    h1,h2,h3,h4,p{margin:0;}
+
+    h1{
+      font-size:40px;
+      line-height:1.04;
+      letter-spacing:-.8px;
+    }
+
+    h2{
+      font-size:28px;
+      line-height:1.12;
+      letter-spacing:-.3px;
+    }
+
+    h3{
+      font-size:17px;
+      line-height:1.18;
+    }
+
+    h4{
+      font-size:13px;
+      line-height:1.2;
+    }
+
+    p{
+      line-height:1.42;
+    }
+
+    .ey-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.14);
+      color:var(--ey-white);
+      padding:6px 11px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      backdrop-filter:blur(8px);
+      box-shadow:0 6px 14px rgba(0,0,0,0.2);
+      margin-bottom:12px;
+    }
+
+    .subtitle{
+      max-width:720px;
+      font-size:14px;
+      color:var(--ey-grey-02);
+    }
+
+    .muted{color:var(--ey-grey-02);}
+    .yellow{color:var(--ey-yellow);}
+    .hero-full-highlight{display:block;}
+
+    /* ---------- Animation ---------- */
+    .animate{
+      opacity:0;
+      transform:translateY(18px);
+    }
+
+    .slide.active .animate{
+      animation:riseIn .65s ease forwards;
+    }
+
+    .slide.active .delay-1{animation-delay:.08s;}
+    .slide.active .delay-2{animation-delay:.18s;}
+    .slide.active .delay-3{animation-delay:.28s;}
+    .slide.active .delay-4{animation-delay:.38s;}
+    .slide.active .delay-5{animation-delay:.48s;}
+    .slide.active .delay-6{animation-delay:.58s;}
+
+    @keyframes riseIn{
+      from{opacity:0; transform:translateY(18px) scale(.985);}
+      to{opacity:1; transform:translateY(0) scale(1);}
+    }
+
+    /* ---------- Shared panels ---------- */
+    .glass-panel,
+    .card,
+    .metric,
+    .issue-card,
+    .insight-panel,
+    .spoke,
+    .outcome-board,
+    .narrative-panel,
+    .center-hub,
+    .ribbon-card{
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.14);
+      box-shadow:0 10px 22px rgba(0,0,0,0.22);
+      backdrop-filter:blur(8px);
+    }
+
+    /* ---------- Slide 1 ---------- */
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.08fr .92fr;
+      gap:18px;
+      align-items:stretch;
+    }
+
+    .hero-intro{
+      max-width:590px;
+    }
+
+    .story-ribbon{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .ribbon-card{
+      position:relative;
+      border-radius:14px;
+      padding:14px 12px;
+      min-height:116px;
+      overflow:hidden;
+    }
+
+    .ribbon-card::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:4px;
+      background:var(--ey-yellow);
+    }
+
+    .ribbon-icon{
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      margin-bottom:10px;
+    }
+
+    .ribbon-card h4{
+      color:var(--ey-white);
+    }
+
+    .ribbon-card p{
+      margin-top:7px;
+      color:var(--ey-grey-02);
+      font-size:10.5px;
+      line-height:1.32;
+    }
+
+    .hero-side{
+      border-radius:18px;
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero-side::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:5px;
+      background:var(--ey-yellow);
+    }
+
+    .hero-side h3{
+      margin-bottom:12px;
+    }
+
+    .metric-stack{
+      display:grid;
+      gap:10px;
+    }
+
+    .metric{
+      border-radius:14px;
+      padding:12px;
+    }
+
+    .metric-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+    }
+
+    .metric-label{
+      font-size:9px;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      color:var(--ey-grey-02);
+      margin-bottom:4px;
+    }
+
+    .metric-kpi{
+      font-size:24px;
+      font-weight:900;
+      line-height:1;
+      color:var(--ey-yellow);
+    }
+
+    .metric-bar{
+      height:6px;
+      border-radius:999px;
+      background:rgba(255,255,255,.1);
+      overflow:hidden;
+      margin-top:7px;
+    }
+
+    .metric-bar > span{
+      display:block;
+      height:100%;
+      background:var(--ey-white);
+      border-radius:999px;
+    }
+
+    .metric-note{
+      font-size:10px;
+      color:var(--ey-grey-02);
+      margin-top:6px;
+      line-height:1.32;
+    }
+
+    /* ---------- Slide 2 ---------- */
+    .section-head{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-start;
+      margin-bottom:16px;
+    }
+
+    .infographic-board{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    .issue-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .issue-card{
+      border-radius:14px;
+      padding:14px;
+      min-height:165px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .issue-card::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:4px;
+      background:var(--ey-yellow);
+    }
+
+    .issue-top{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:9px;
+    }
+
+    .issue-icon{
+      width:36px;
+      height:36px;
+      border-radius:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      font-size:14px;
+    }
+
+    .issue-code{
+      height:max-content;
+      padding:6px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--ey-grey-02);
+      font-size:9px;
+      font-weight:800;
+    }
+
+    .bullet-list{
+      display:grid;
+      gap:6px;
+      margin-top:9px;
+    }
+
+    .bullet-item{
+      display:flex;
+      gap:8px;
+      font-size:10.5px;
+      color:var(--ey-grey-02);
+      line-height:1.32;
+    }
+
+    .bullet-item::before{
+      content:"";
+      width:6px;
+      height:6px;
+      margin-top:5px;
+      border-radius:50%;
+      background:var(--ey-yellow);
+      flex-shrink:0;
+    }
+
+    .impact-pill{
+      display:inline-flex;
+      margin-top:10px;
+      padding:6px 9px;
+      border-radius:999px;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+    }
+
+    .insight-panel{
+      border-radius:16px;
+      padding:16px;
+      display:grid;
+      gap:13px;
+    }
+
+    .panel-title{
+      display:flex;
+      gap:9px;
+      align-items:flex-start;
+    }
+
+    .panel-badge{
+      width:36px;
+      height:36px;
+      border-radius:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      font-size:14px;
+      flex-shrink:0;
+    }
+
+    .kpi-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .kpi-box{
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .kpi-box .num{
+      font-size:26px;
+      font-weight:900;
+      line-height:1;
+      color:var(--ey-yellow);
+    }
+
+    .kpi-box .txt{
+      font-size:10.5px;
+      color:var(--ey-grey-02);
+      margin-top:6px;
+      line-height:1.32;
+    }
+
+    .maturity{
+      display:grid;
+      gap:9px;
+      border-top:1px solid rgba(255,255,255,.12);
+      padding-top:12px;
+    }
+
+    .mat-row{
+      display:grid;
+      grid-template-columns:82px 1fr 36px;
+      gap:8px;
+      align-items:center;
+    }
+
+    .mat-row span{
+      font-size:10.5px;
+      font-weight:700;
+      color:var(--ey-white);
+    }
+
+    .mat-track{
+      height:7px;
+      border-radius:999px;
+      overflow:hidden;
+      background:rgba(255,255,255,.1);
+    }
+
+    .mat-track em{
+      display:block;
+      height:100%;
+      border-radius:999px;
+      background:var(--ey-yellow);
+      font-style:normal;
+    }
+
+    .mat-score{
+      font-size:10px;
+      color:var(--ey-grey-02);
+      font-weight:900;
+      text-align:right;
+    }
+
+    /* ---------- Slide 3 ---------- */
+    .hub-stage{
+      position:relative;
+      width:100%;
+      height:430px;
+      margin-top:2px;
+    }
+
+    .ring-line{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:360px;
+      height:360px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:50%;
+      z-index:1;
+      animation:spinRing 22s linear infinite;
+    }
+
+    @keyframes spinRing{
+      from{transform:translate(-50%,-50%) rotate(0deg);}
+      to{transform:translate(-50%,-50%) rotate(360deg);}
+    }
+
+    .path-svg{
+      position:absolute;
+      inset:0;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .path-line{
+      fill:none;
+      stroke:rgba(255,255,255,.35);
+      stroke-width:2.4;
+      stroke-dasharray:7 7;
+      animation:dashLine 12s linear infinite;
+    }
+
+    @keyframes dashLine{
+      to{stroke-dashoffset:-120;}
+    }
+
+    .center-hub{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:250px;
+      min-height:104px;
+      border-radius:20px;
+      padding:14px 16px;
+      z-index:6;
+      text-align:center;
+      background:rgba(255,230,0,.94);
+      color:var(--ey-black);
+      border:1px solid var(--ey-yellow);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .center-hub h3{
+      font-size:19px;
+      line-height:1.08;
+      margin-bottom:5px;
+    }
+
+    .center-hub p{
+      font-size:10.5px;
+      line-height:1.32;
+      color:var(--ey-black);
+      max-width:210px;
+      margin:0 auto;
+    }
+
+    .spoke{
+      position:absolute;
+      width:220px;
+      border-radius:16px;
+      padding:14px;
+      z-index:5;
+      overflow:hidden;
+    }
+
+    .spoke::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:4px;
+      background:var(--ey-yellow);
+    }
+
+    .spoke-top{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      margin-bottom:8px;
+    }
+
+    .spoke-icon{
+      width:34px;
+      height:34px;
+      border-radius:11px;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      flex-shrink:0;
+    }
+
+    .spoke-title{
+      font-size:13.5px;
+      line-height:1.2;
+      font-weight:800;
+    }
+
+    .spoke-points{
+      display:grid;
+      gap:5px;
+      margin-top:7px;
+    }
+
+    .spoke-points div{
+      display:flex;
+      gap:7px;
+      font-size:10px;
+      line-height:1.3;
+      color:var(--ey-grey-02);
+    }
+
+    .spoke-points div::before{
+      content:"•";
+      color:var(--ey-yellow);
+      font-weight:900;
+    }
+
+    .spoke-tag{
+      display:inline-flex;
+      margin-top:9px;
+      padding:6px 9px;
+      border-radius:999px;
+      background:rgba(255,230,0,.12);
+      color:var(--ey-yellow);
+      border:1px solid rgba(255,230,0,.22);
+      font-size:8.8px;
+      font-weight:900;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+    }
+
+    .spoke.top{
+      left:50%;
+      top:-10px;
+      transform:translateX(-50%);
+    }
+
+    .spoke.right{
+      right:14px;
+      top:50%;
+      transform:translateY(-50%);
+    }
+
+    .spoke.bottom{
+      left:50%;
+      bottom:-10px;
+      transform:translateX(-50%);
+    }
+
+    .spoke.left{
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+    }
+
+    /* ---------- Slide 4 ---------- */
+    .close-layout{
+      display:grid;
+      grid-template-columns:1.02fr .98fr;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    .narrative-panel{
+      border-radius:18px;
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .narrative-panel::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:5px;
+      background:var(--ey-yellow);
+    }
+
+    .closing-line{
+      font-size:30px;
+      line-height:1.16;
+      font-weight:900;
+      max-width:450px;
+      margin:4px 0 12px 0;
+    }
+
+    .checkpoint-row{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:9px;
+      margin-top:16px;
+    }
+
+    .checkpoint{
+      border-radius:14px;
+      padding:12px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .checkpoint .ico{
+      width:34px;
+      height:34px;
+      border-radius:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      margin-bottom:9px;
+    }
+
+    .checkpoint p{
+      font-size:10.5px;
+      color:var(--ey-grey-02);
+      margin-top:6px;
+      line-height:1.32;
+    }
+
+    .outcome-board{
+      border-radius:18px;
+      padding:16px;
+      display:grid;
+      gap:11px;
+    }
+
+    .board-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+
+    .board-pill{
+      padding:6px 9px;
+      border-radius:999px;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .outcome-grid{
+      display:grid;
+      gap:10px;
+    }
+
+    .outcome-row{
+      display:grid;
+      grid-template-columns:42px 1fr auto;
+      gap:9px;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .outcome-icon{
+      width:36px;
+      height:36px;
+      border-radius:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--ey-yellow);
+      color:var(--ey-black);
+      font-size:14px;
+    }
+
+    .outcome-row p{
+      font-size:10.5px;
+      color:var(--ey-grey-02);
+      line-height:1.32;
+    }
+
+    .outcome-chip{
+      padding:6px 9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--ey-white);
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.32px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .qa-footer{
+      position:absolute;
+      right:36px;
+      bottom:14px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      color:var(--ey-grey-02);
+      font-size:10.5px;
+      font-weight:800;
+      z-index:4;
+    }
+
+    .qa-line{
+      width:34px;
+      height:2px;
+      border-radius:999px;
+      background:var(--ey-yellow);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="presentation-container">
+
+    <div class="nav" aria-label="Slide navigation">
+      <button type="button" onclick="goToSlide(0)">1</button>
+      <button type="button" onclick="goToSlide(1)">2</button>
+      <button type="button" onclick="goToSlide(2)">3</button>
+      <button type="button" onclick="goToSlide(3)">4</button>
+    </div>
+
+    <div class="top-right">
+      <button type="button" onclick="openFullscreen()">
+        <i class="fa-solid fa-expand"></i> Full Screen
+      </button>
+    </div>
+
+    <div class="counter" id="counter">1 / 4</div>
+
+    <!-- Slide 1 -->
+    <section class="slide active">
+      <div class="bg-wrap">
+        <div class="bg-noise"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-soft-glow"></div>
+        <div class="bg-top-bar"></div>
+        <div class="bg-frame-top"></div>
+        <div class="bg-frame-left"></div>
+        <div class="page-chip">Page 1</div>
+        <div class="ey-mark">
+          <div class="ey-logo-spaced">
+            <div class="beam"></div>
+            <div class="text">EY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-wrap">
+        <div class="hero-grid">
+          <div>
+            <div class="ey-tag animate delay-1">
+              <i class="fa-solid fa-chart-line"></i> Strategic Reset Opportunity
+            </div>
+
+            <div class="hero-intro">
+              <h1 class="animate delay-2 hero-full-highlight">
+                The Reset Opportunity<br>
+                Unified Intelligence &amp; Enforcement Platform
+              </h1>
+
+              <p class="subtitle animate delay-3" style="margin-top:12px;">
+                Converting existing surveillance, ANPR and traffic infrastructure into a unified intelligence, enforcement, safety and revenue realization engine.
+              </p>
+            </div>
+
+            <div class="story-ribbon animate delay-4">
+              <div class="ribbon-card">
+                <div class="ribbon-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h4>Predictive Policing</h4>
+                <p>Shift from reactive monitoring to proactive hotspot and pattern detection.</p>
+              </div>
+
+              <div class="ribbon-card">
+                <div class="ribbon-icon"><i class="fa-solid fa-receipt"></i></div>
+                <h4>E-Challan Closure</h4>
+                <p>Connect generation, payment, field visibility and closure into one cycle.</p>
+              </div>
+
+              <div class="ribbon-card">
+                <div class="ribbon-icon"><i class="fa-solid fa-database"></i></div>
+                <h4>Unified Data Layer</h4>
+                <p>Bring person, vehicle and case records together for faster investigation.</p>
+              </div>
+
+              <div class="ribbon-card">
+                <div class="ribbon-icon"><i class="fa-solid fa-road"></i></div>
+                <h4>Highway Safety</h4>
+                <p>Increase corridor visibility, alerts and response readiness from one platform.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-side animate delay-5">
+            <h3>Why this matters now</h3>
+
+            <div class="metric-stack">
+              <div class="metric">
+                <div class="metric-top">
+                  <div>
+                    <div class="metric-label">Operational unlock</div>
+                    <div class="metric-kpi">01</div>
+                  </div>
+                  <i class="fa-solid fa-bolt yellow"></i>
+                </div>
+                <div class="metric-bar"><span style="width:86%"></span></div>
+                <div class="metric-note">Existing infrastructure can support higher-value intelligence outcomes.</div>
+              </div>
+
+              <div class="metric">
+                <div class="metric-top">
+                  <div>
+                    <div class="metric-label">Revenue cycle</div>
+                    <div class="metric-kpi">02</div>
+                  </div>
+                  <i class="fa-solid fa-indian-rupee-sign yellow"></i>
+                </div>
+                <div class="metric-bar"><span style="width:74%"></span></div>
+                <div class="metric-note">E-challan integration can improve closure visibility and realization.</div>
+              </div>
+
+              <div class="metric">
+                <div class="metric-top">
+                  <div>
+                    <div class="metric-label">Investigation speed</div>
+                    <div class="metric-kpi">03</div>
+                  </div>
+                  <i class="fa-solid fa-magnifying-glass-chart yellow"></i>
+                </div>
+                <div class="metric-bar"><span style="width:79%"></span></div>
+                <div class="metric-note">Unified search and linkage reduce time to identify persons, vehicles and patterns.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2 -->
+    <section class="slide">
+      <div class="bg-wrap">
+        <div class="bg-noise"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-soft-glow"></div>
+        <div class="bg-top-bar"></div>
+        <div class="bg-frame-top"></div>
+        <div class="bg-frame-left"></div>
+        <div class="page-chip">Page 2</div>
+        <div class="ey-mark">
+          <div class="ey-logo-spaced">
+            <div class="beam"></div>
+            <div class="text">EY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-wrap">
+        <div class="section-head">
+          <div class="ey-tag animate delay-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> Current State Assessment
+          </div>
+
+          <h2 class="animate delay-2">Current Landscape &amp; Gap Areas</h2>
+
+          <p class="subtitle animate delay-3">
+            Current systems operate as isolated silos, reducing intelligence conversion, enforcement efficiency, investigation speed and predictive response.
+          </p>
+        </div>
+
+        <div class="infographic-board animate delay-4">
+          <div class="issue-grid">
+
+            <div class="issue-card">
+              <div class="issue-top">
+                <div class="issue-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="issue-code">SILO 01</div>
+              </div>
+              <h3>Reactive Policing</h3>
+              <div class="bullet-list">
+                <div class="bullet-item">Metadata generated but underutilized.</div>
+                <div class="bullet-item">Limited hotspot and pattern detection.</div>
+                <div class="bullet-item">Response remains post-incident driven.</div>
+              </div>
+              <div class="impact-pill">Reactive vs predictive</div>
+            </div>
+
+            <div class="issue-card">
+              <div class="issue-top">
+                <div class="issue-icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+                <div class="issue-code">SILO 02</div>
+              </div>
+              <h3>Fragmented E-Challan</h3>
+              <div class="bullet-list">
+                <div class="bullet-item">Disconnected generation, payment and closure.</div>
+                <div class="bullet-item">No complete field feedback loop.</div>
+                <div class="bullet-item">Revenue realization remains delayed.</div>
+              </div>
+              <div class="impact-pill">Leakage in cycle</div>
+            </div>
+
+            <div class="issue-card">
+              <div class="issue-top">
+                <div class="issue-icon"><i class="fa-solid fa-database"></i></div>
+                <div class="issue-code">SILO 03</div>
+              </div>
+              <h3>Siloed Investigation Data</h3>
+              <div class="bullet-list">
+                <div class="bullet-item">Separate access across multiple datasets.</div>
+                <div class="bullet-item">Single view of person or vehicle absent.</div>
+                <div class="bullet-item">Case linkage and traceability remain slow.</div>
+              </div>
+              <div class="impact-pill">Delayed linkage</div>
+            </div>
+
+            <div class="issue-card">
+              <div class="issue-top">
+                <div class="issue-icon"><i class="fa-solid fa-road"></i></div>
+                <div class="issue-code">SILO 04</div>
+              </div>
+              <h3>Monitoring-Only Highways</h3>
+              <div class="bullet-list">
+                <div class="bullet-item">Limited predictive safety enforcement.</div>
+                <div class="bullet-item">Partial corridor-level tracking integration.</div>
+                <div class="bullet-item">Incident alerts and response not unified.</div>
+              </div>
+              <div class="impact-pill">Visibility without prediction</div>
+            </div>
+
+          </div>
+
+          <div class="insight-panel">
+            <div class="panel-title">
+              <div class="panel-badge"><i class="fa-solid fa-chart-simple"></i></div>
+              <div>
+                <h3>Infographic summary</h3>
+                <p class="muted" style="margin-top:5px; font-size:10.5px;">Four silos create a fragmented operating model.</p>
+              </div>
+            </div>
+
+            <div class="kpi-grid">
+              <div class="kpi-box">
+                <div class="num">4</div>
+                <div class="txt">separate capability silos limit cross-functional impact.</div>
+              </div>
+
+              <div class="kpi-box">
+                <div class="num">1</div>
+                <div class="txt">integrated command layer needed for intelligence-to-action flow.</div>
+              </div>
+            </div>
+
+            <div class="maturity">
+              <div class="mat-row">
+                <span>Policing</span>
+                <div class="mat-track"><em style="width:34%"></em></div>
+                <div class="mat-score">34%</div>
+              </div>
+
+              <div class="mat-row">
+                <span>E-Challan</span>
+                <div class="mat-track"><em style="width:41%"></em></div>
+                <div class="mat-score">41%</div>
+              </div>
+
+              <div class="mat-row">
+                <span>Data Lake</span>
+                <div class="mat-track"><em style="width:29%"></em></div>
+                <div class="mat-score">29%</div>
+              </div>
+
+              <div class="mat-row">
+                <span>Highways</span>
+                <div class="mat-track"><em style="width:38%"></em></div>
+                <div class="mat-score">38%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3 -->
+    <section class="slide">
+      <div class="bg-wrap">
+        <div class="bg-noise"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-soft-glow"></div>
+        <div class="bg-top-bar"></div>
+        <div class="bg-frame-top"></div>
+        <div class="bg-frame-left"></div>
+        <div class="page-chip">Page 3</div>
+        <div class="ey-mark">
+          <div class="ey-logo-spaced">
+            <div class="beam"></div>
+            <div class="text">EY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-wrap">
+        <div class="section-head">
+          <div class="ey-tag animate delay-1">
+            <i class="fa-solid fa-bolt"></i> Unified Reset Architecture
+          </div>
+
+          <h2 class="animate delay-2">Platform-Led Outcomes</h2>
+
+          <p class="subtitle animate delay-3">
+            A hub-and-spoke operating model unifies intelligence, enforcement, investigation and mobility safety into a connected decision and action layer.
+          </p>
+        </div>
+
+        <div class="hub-stage animate delay-4">
+          <div class="ring-line"></div>
+
+          <svg class="path-svg" viewBox="0 0 1060 430" preserveAspectRatio="none">
+            <path class="path-line" d="M530 162 L530 76" />
+            <path class="path-line" d="M650 215 L860 215" />
+            <path class="path-line" d="M530 268 L530 354" />
+            <path class="path-line" d="M410 215 L200 215" />
+          </svg>
+
+          <div class="center-hub">
+            <h3>Unified Platform</h3>
+            <p>Single command layer for prevention, investigation, compliance and response.</p>
+          </div>
+
+          <div class="spoke top">
+            <div class="spoke-top">
+              <div class="spoke-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <div class="spoke-title">Proactive &amp; Predictive Policing</div>
+            </div>
+            <div class="spoke-points">
+              <div>Convert metadata into actionable intelligence.</div>
+              <div>Identify hotspots and suspect patterns.</div>
+              <div>Move from monitoring to prevention.</div>
+            </div>
+            <div class="spoke-tag">Prevention layer</div>
+          </div>
+
+          <div class="spoke right">
+            <div class="spoke-top">
+              <div class="spoke-icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+              <div class="spoke-title">Complete E-Challan Lifecycle</div>
+            </div>
+            <div class="spoke-points">
+              <div>Automated generation to final closure.</div>
+              <div>Real-time defaulter visibility for field teams.</div>
+              <div>Measurable recovery of pending revenue.</div>
+            </div>
+            <div class="spoke-tag">Enforcement layer</div>
+          </div>
+
+          <div class="spoke bottom">
+            <div class="spoke-top">
+              <div class="spoke-icon"><i class="fa-solid fa-database"></i></div>
+              <div class="spoke-title">Centralized Investigation Data Lake</div>
+            </div>
+            <div class="spoke-points">
+              <div>Unified view of person, vehicle and location.</div>
+              <div>Rapid cross-search and case linkage.</div>
+              <div>Single intelligence layer for agencies.</div>
+            </div>
+            <div class="spoke-tag">Investigation layer</div>
+          </div>
+
+          <div class="spoke left">
+            <div class="spoke-top">
+              <div class="spoke-icon"><i class="fa-solid fa-road"></i></div>
+              <div class="spoke-title">Predictive Highway Safety</div>
+            </div>
+            <div class="spoke-points">
+              <div>Speed and wrong-way detection in real time.</div>
+              <div>Corridor-level vehicle tracking.</div>
+              <div>Automated incident alerts for quick response.</div>
+            </div>
+            <div class="spoke-tag">Mobility layer</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4 -->
+    <section class="slide">
+      <div class="bg-wrap">
+        <div class="bg-noise"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-soft-glow"></div>
+        <div class="bg-top-bar"></div>
+        <div class="bg-frame-top"></div>
+        <div class="bg-frame-left"></div>
+        <div class="page-chip">Page 4</div>
+        <div class="ey-mark">
+          <div class="ey-logo-spaced">
+            <div class="beam"></div>
+            <div class="text">EY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-wrap">
+        <div class="close-layout animate delay-2">
+          <div class="narrative-panel">
+            <div class="ey-tag">
+              <i class="fa-solid fa-flag-checkered"></i> Executive Vision
+            </div>
+
+            <div class="closing-line">
+              Convert existing infrastructure into a
+              <span class="yellow">unified intelligence, enforcement, safety and revenue realization platform.</span>
+            </div>
+
+            <p class="muted" style="max-width:450px; font-size:11.5px;">
+              The proposition is not about new infrastructure-led spending alone. It is a reset of how existing surveillance, ANPR, traffic and data assets are connected, governed and operationalized.
+            </p>
+
+            <div class="checkpoint-row">
+              <div class="checkpoint">
+                <div class="ico"><i class="fa-solid fa-bullseye"></i></div>
+                <h4>Intelligence-led operations</h4>
+                <p>Turn signals into prioritised action for command teams.</p>
+              </div>
+
+              <div class="checkpoint">
+                <div class="ico"><i class="fa-solid fa-arrows-rotate"></i></div>
+                <h4>End-to-end enforcement</h4>
+                <p>Connect issuance, action, closure and visibility loops.</p>
+              </div>
+
+              <div class="checkpoint">
+                <div class="ico"><i class="fa-solid fa-gauge-high"></i></div>
+                <h4>Faster response</h4>
+                <p>Improve traceability, alerts and decision support at speed.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="outcome-board">
+            <div class="board-head">
+              <div>
+                <h3>Outcome map</h3>
+                <p class="muted" style="margin-top:5px; font-size:10.5px;">
+                  Illustrative operating outcomes from the reset model.
+                </p>
+              </div>
+              <div class="board-pill">Target state</div>
+            </div>
+
+            <div class="outcome-grid">
+              <div class="outcome-row">
+                <div class="outcome-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                  <h4>Smarter prevention</h4>
+                  <p>Command centres move from observation to predictive prioritisation.</p>
+                </div>
+                <div class="outcome-chip">Policing</div>
+              </div>
+
+              <div class="outcome-row">
+                <div class="outcome-icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+                <div>
+                  <h4>Higher enforcement closure</h4>
+                  <p>Field and back-office teams work on one visibility and action chain.</p>
+                </div>
+                <div class="outcome-chip">Recovery</div>
+              </div>
+
+              <div class="outcome-row">
+                <div class="outcome-icon"><i class="fa-solid fa-database"></i></div>
+                <div>
+                  <h4>Unified intelligence search</h4>
+                  <p>Investigation teams access linked records with faster case correlation.</p>
+                </div>
+                <div class="outcome-chip">Data</div>
+              </div>
+
+              <div class="outcome-row">
+                <div class="outcome-icon"><i class="fa-solid fa-road"></i></div>
+                <div>
+                  <h4>Safer corridors</h4>
+                  <p>Mobility operations receive earlier alerts and better route-level visibility.</p>
+                </div>
+                <div class="outcome-chip">Highways</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-footer animate delay-5">
+          <div class="qa-line"></div>
+          <div>Thank You / Q&amp;A</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+  </div>
+
+  <script>
+    function scalePresentation() {
+      const container = document.getElementById('presentation-container');
+
+      const viewportW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+      const viewportH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+      const scaleX = viewportW / 1280;
+      const scaleY = viewportH / 720;
+
+      const scale = Math.min(scaleX, scaleY);
+
+      container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    window.addEventListener('resize', scalePresentation);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scalePresentation);
+      window.visualViewport.addEventListener('scroll', scalePresentation);
+    }
+
+    window.addEventListener('load', scalePresentation);
+    document.addEventListener('DOMContentLoaded', scalePresentation);
+
+    document.addEventListener("DOMContentLoaded", function () {
+      let index = 0;
+
+      const slides = document.querySelectorAll('.slide');
+      const buttons = document.querySelectorAll('.nav button');
+      const progressBar = document.getElementById('progressBar');
+      const counter = document.getElementById('counter');
+
+      function updateUI() {
+        slides.forEach(slide => slide.classList.remove('active'));
+        buttons.forEach(button => button.classList.remove('active-btn'));
+
+        slides[index].classList.add('active');
+        buttons[index].classList.add('active-btn');
+
+        counter.textContent = (index + 1) + ' / ' + slides.length;
+        progressBar.style.width = (((index + 1) / slides.length) * 100) + '%';
+      }
+
+      window.goToSlide = function (i) {
+        index = Math.max(0, Math.min(i, slides.length - 1));
+        updateUI();
+      };
+
+      function nextSlide() {
+        index = (index + 1) % slides.length;
+        updateUI();
+      }
+
+      function prevSlide() {
+        index = (index - 1 + slides.length) % slides.length;
+        updateUI();
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'f' || e.key === 'F') openFullscreen();
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('button')) nextSlide();
+      });
+
+      window.openFullscreen = function () {
+        const elem = document.documentElement;
+
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        }
+      };
+
+      let touchStartX = 0;
+      let touchEndX = 0;
+      let touchStartY = 0;
+      let touchEndY = 0;
+
+      document.addEventListener('touchstart', function (e) {
+        const t = e.changedTouches[0];
+        touchStartX = t.screenX;
+        touchStartY = t.screenY;
+      }, { passive: true });
+
+      document.addEventListener('touchend', function (e) {
+        const t = e.changedTouches[0];
+        touchEndX = t.screenX;
+        touchEndY = t.screenY;
+
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) {
+            nextSlide();
+          } else {
+            prevSlide();
+          }
+        }
+      }, { passive: true });
+
+      scalePresentation();
+      updateUI();
+    });
+  </script>
+</body>
+</html>

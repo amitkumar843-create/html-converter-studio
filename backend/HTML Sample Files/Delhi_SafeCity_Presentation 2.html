@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Delhi Safe City Project — Implementation Status Briefing</title>
+<style>
+  /* ============== EY BRAND TOKENS ============== */
+  :root{
+    --ey-offblack:#2E2E38;
+    --gray-01:#747480;
+    --gray-02:#C4C4CD;
+    --black:#000000;
+    --white:#FFFFFF;
+    --ey-yellow:#FFE600;
+    --green:#2DB757;
+    --teal:#27ACAA;
+    --blue:#188CE5;
+    --purple:#3D108A;
+    --maroon:#750E5C;
+    --red:#FF4136;
+    --orange:#FF6D00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    background:#1a1a22;
+    font-family:"Helvetica Neue","Arial","Segoe UI",sans-serif;
+    color:var(--ey-offblack);
+    width:100%;height:100%;
+    overflow:hidden;
+  }
+
+  /* ============== DECK ============== */
+  #deck{
+    width:100vw;height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    padding:14px 14px 70px 14px; /* bottom room for nav */
+  }
+  /* New: scaling stage that holds all slides at fixed 1280x720
+     and visually scales to fit available viewport space. */
+  .slide-stage{
+    width:1280px;height:720px;
+    position:relative;
+    transform:scale(var(--slide-scale,1));
+    transform-origin:center center;
+    flex:0 0 auto;
+  }
+  .slide{
+    display:none;
+    width:1280px;height:720px;
+    background:var(--white);
+    position:absolute;top:0;left:0;
+    overflow:hidden;
+    flex-direction:column;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+  .slide.active{display:flex;}
+
+  /* ============== SHARED COMPONENTS ============== */
+  .ey-bar{height:6px;background:var(--ey-yellow);width:100%;}
+  .slide-header{
+    padding:28px 56px 14px 56px;
+    border-bottom:1px solid var(--gray-02);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .ey-eyebrow{
+    font-size:11px;font-weight:700;letter-spacing:2px;
+    color:var(--gray-01);text-transform:uppercase;
+  }
+  .slide-title{
+    font-size:24px;font-weight:800;color:var(--ey-offblack);
+    line-height:1.2;letter-spacing:-.3px;
+  }
+  .slide-subtitle{
+    font-size:12.5px;color:var(--gray-01);font-weight:500;margin-top:2px;
+  }
+  .slide-body{
+    flex:1;padding:18px 56px 14px 56px;
+    display:flex;flex-direction:column;gap:14px;
+    overflow:hidden;
+  }
+  /* Make first child stretch to fill remaining vertical space */
+  .slide-body > *:first-child{flex:1 1 auto;min-height:0;}
+  .slide-body > *:not(:first-child){flex:0 0 auto;}
+  .slide-footer{
+    border-top:1px solid var(--gray-02);
+    padding:8px 56px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:10px;color:var(--gray-01);
+  }
+  .footer-left{font-weight:700;color:var(--ey-offblack);letter-spacing:.5px;}
+  .footer-right{font-weight:500;}
+
+  /* ============== KPI / METRIC TILES ============== */
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .metric{
+    background:#F7F7FA;border-left:4px solid var(--ey-yellow);
+    padding:12px 14px;display:flex;flex-direction:column;gap:3px;min-height:88px;
+  }
+  .metric .value{font-size:22px;font-weight:800;color:var(--ey-offblack);letter-spacing:-.5px;}
+  .metric .label{font-size:10.5px;color:var(--gray-01);font-weight:500;line-height:1.35;}
+  .metric.amber{border-left-color:var(--orange);}
+  .metric.red{border-left-color:var(--red);}
+  .metric.green{border-left-color:var(--green);}
+  .metric.blue{border-left-color:var(--blue);}
+
+  /* ============== CARDS ============== */
+  .card{
+    background:#FFFFFF;border:1px solid var(--gray-02);
+    padding:12px 14px;border-radius:2px;
+    display:flex;flex-direction:column;gap:5px;
+  }
+  .card .card-title{
+    font-size:11.5px;font-weight:700;color:var(--ey-offblack);
+    text-transform:uppercase;letter-spacing:.6px;
+    padding-bottom:4px;border-bottom:2px solid var(--ey-yellow);
+  }
+  .card .card-body{font-size:11px;color:var(--ey-offblack);line-height:1.5;}
+
+  /* ============== STATUS BADGES ============== */
+  .badge{
+    display:inline-block;font-size:9px;font-weight:800;
+    padding:3px 8px;border-radius:2px;letter-spacing:.6px;text-transform:uppercase;
+  }
+  .badge-delivered{background:var(--green);color:#fff;}
+  .badge-pending{background:var(--red);color:#fff;}
+  .badge-progress{background:var(--orange);color:#fff;}
+  .badge-critical{background:var(--red);color:#fff;}
+  .badge-high{background:var(--orange);color:#fff;}
+  .badge-info{background:var(--blue);color:#fff;}
+
+  /* ============== DONUT CHART (CSS conic-gradient) ============== */
+  .donut{
+    width:62px;height:62px;border-radius:50%;
+    background:conic-gradient(var(--ey-yellow) 0deg var(--deg,0deg), #EEEFF3 0deg 360deg);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+  }
+  .donut::before{
+    content:"";position:absolute;inset:7px;background:#fff;border-radius:50%;
+  }
+  .donut .val{
+    position:relative;z-index:1;font-size:13px;font-weight:800;color:var(--ey-offblack);
+  }
+  .donut.green{background:conic-gradient(var(--green) 0deg var(--deg,0deg), #EEEFF3 0deg 360deg);}
+  .donut.red{background:conic-gradient(var(--red) 0deg var(--deg,0deg), #EEEFF3 0deg 360deg);}
+  .donut.orange{background:conic-gradient(var(--orange) 0deg var(--deg,0deg), #EEEFF3 0deg 360deg);}
+  .donut.blue{background:conic-gradient(var(--blue) 0deg var(--deg,0deg), #EEEFF3 0deg 360deg);}
+
+  /* ============== HORIZONTAL PROGRESS BAR ============== */
+  .bar-row{display:flex;align-items:center;gap:10px;padding:4px 0;}
+  .bar-label{flex:0 0 150px;font-size:11px;font-weight:600;color:var(--ey-offblack);}
+  .bar-track{
+    flex:1;height:14px;background:#EEEFF3;position:relative;border-radius:1px;
+  }
+  .bar-fill{
+    height:100%;background:var(--ey-yellow);border-radius:1px;
+    display:flex;align-items:center;justify-content:flex-end;padding-right:5px;
+  }
+  .bar-fill.green{background:var(--green);}
+  .bar-fill.red{background:var(--red);}
+  .bar-fill.orange{background:var(--orange);}
+  .bar-fill.blue{background:var(--blue);}
+  .bar-value{font-size:10.5px;font-weight:700;color:var(--ey-offblack);flex:0 0 70px;text-align:right;}
+
+  /* ============== GANTT TIMELINE ============== */
+  .gantt{
+    background:#FAFAFC;border:1px solid var(--gray-02);padding:14px;
+  }
+  .gantt-header{
+    display:flex;align-items:center;gap:6px;padding-bottom:8px;
+    border-bottom:1px solid var(--gray-02);margin-bottom:6px;
+  }
+  .gantt-header .gh-label{flex:0 0 70px;font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;}
+  .gantt-header .gh-months{flex:1;display:flex;}
+  .gantt-header .gh-months span{
+    flex:1;font-size:9px;font-weight:700;color:var(--gray-01);text-align:center;
+    border-left:1px solid var(--gray-02);padding:2px 0;
+  }
+  .gantt-header .gh-status{flex:0 0 80px;font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-align:center;text-transform:uppercase;}
+  .gantt-row{
+    display:flex;align-items:center;gap:6px;height:24px;margin-bottom:3px;
+  }
+  .gantt-row .gr-label{
+    flex:0 0 70px;font-size:10px;font-weight:700;color:var(--ey-offblack);
+  }
+  .gantt-row .gr-track{
+    flex:1;position:relative;height:18px;background:#fff;border:1px solid var(--gray-02);
+  }
+  .gantt-row .gr-bar{
+    position:absolute;top:0;bottom:0;background:var(--ey-yellow);
+    display:flex;align-items:center;padding:0 6px;
+    font-size:8.5px;font-weight:700;color:var(--ey-offblack);
+  }
+  .gantt-row .gr-bar.delivered{background:var(--green);color:#fff;}
+  .gantt-row .gr-bar.pending{background:var(--red);color:#fff;opacity:.85;}
+  .gantt-row .gr-status{flex:0 0 80px;text-align:center;}
+
+  /* ============== SEVERITY METER (5 bars) ============== */
+  .sev-meter{display:flex;gap:2px;align-items:flex-end;height:14px;}
+  .sev-meter .sb{width:5px;background:#EEEFF3;border-radius:1px;}
+  .sev-meter .sb:nth-child(1){height:30%;}
+  .sev-meter .sb:nth-child(2){height:50%;}
+  .sev-meter .sb:nth-child(3){height:70%;}
+  .sev-meter .sb:nth-child(4){height:85%;}
+  .sev-meter .sb:nth-child(5){height:100%;}
+  .sev-meter .sb.on{background:var(--red);}
+  .sev-meter .sb.on.warn{background:var(--orange);}
+
+  /* ============== HEATMAP CELL ============== */
+  .heat-cell{
+    width:18px;height:18px;display:inline-block;border-radius:2px;
+    background:#EEEFF3;vertical-align:middle;
+  }
+  .heat-cell.crit{background:var(--red);}
+  .heat-cell.high{background:var(--orange);}
+  .heat-cell.med{background:var(--ey-yellow);}
+  .heat-cell.low{background:var(--green);}
+
+  /* ============== GENERIC GRIDS ============== */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+
+  /* ============== COVER ============== */
+  .cover{
+    background:var(--ey-offblack);color:#fff;
+    padding:42px 56px;display:flex;flex-direction:column;justify-content:space-between;
+    width:100%;height:100%;gap:14px;
+  }
+  .cover .top-row{display:flex;justify-content:space-between;align-items:flex-start;}
+  .cover .logo-tag{
+    font-size:10.5px;letter-spacing:3px;color:var(--ey-yellow);font-weight:800;
+    border-left:3px solid var(--ey-yellow);padding-left:10px;
+  }
+  .cover h1{
+    font-size:34px;font-weight:800;line-height:1.05;letter-spacing:-1px;
+    color:#fff;margin-top:6px;
+  }
+  .cover .accent-line{width:70px;height:4px;background:var(--ey-yellow);margin:10px 0 8px 0;}
+  .cover .sub{
+    font-size:12.5px;color:var(--gray-02);font-weight:400;max-width:740px;line-height:1.45;
+  }
+  .cover .bottom-row{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-top:1px solid #4A4A55;padding-top:10px;
+    font-size:9.5px;color:var(--gray-02);letter-spacing:.5px;
+  }
+  .cover .bottom-row .right{color:var(--ey-yellow);font-weight:700;}
+
+  /* ====== COVER INFOGRAPHICS ====== */
+  /* Left column: stat tiles + progress donuts */
+  .cv-stats{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  }
+  .cv-stat{
+    background:rgba(255,255,255,.04);border-left:3px solid var(--ey-yellow);
+    padding:10px 12px;display:flex;flex-direction:column;gap:1px;
+  }
+  .cv-stat .num{font-size:20px;font-weight:800;color:var(--ey-yellow);letter-spacing:-.3px;line-height:1;}
+  .cv-stat .lbl{font-size:9px;color:var(--gray-02);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:2px;}
+  .cv-stat .sub{font-size:8.5px;color:var(--gray-01);font-weight:400;margin-top:1px;}
+
+  /* Center: circular hub diagram */
+  .cv-hub-wrap{
+    position:relative;width:280px;height:280px;margin:0 auto;
+  }
+  .cv-hub-ring{
+    position:absolute;inset:0;border:1.5px dashed rgba(255,230,0,.25);
+    border-radius:50%;
+  }
+  .cv-hub-ring.inner{
+    inset:50px;border:1px dashed rgba(255,255,255,.12);
+  }
+  .cv-hub-center{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:120px;height:120px;border-radius:50%;
+    background:var(--ey-yellow);color:var(--ey-offblack);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;font-weight:800;
+    box-shadow:0 0 0 6px rgba(255,230,0,.15);
+  }
+  .cv-hub-center .lbl-top{font-size:8px;letter-spacing:1px;color:var(--ey-offblack);font-weight:700;text-transform:uppercase;opacity:.7;}
+  .cv-hub-center .lbl-main{font-size:13px;letter-spacing:.5px;text-transform:uppercase;margin-top:2px;line-height:1.1;}
+  .cv-hub-orbit{
+    position:absolute;width:64px;height:32px;
+    background:rgba(255,255,255,.06);border:1px solid var(--gray-01);
+    color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.3px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:2px 4px;
+  }
+  .cv-hub-orbit.o1{top:6px;left:50%;transform:translateX(-50%);}
+  .cv-hub-orbit.o2{top:50px;right:-6px;}
+  .cv-hub-orbit.o3{bottom:50px;right:-6px;}
+  .cv-hub-orbit.o4{bottom:6px;left:50%;transform:translateX(-50%);}
+  .cv-hub-orbit.o5{bottom:50px;left:-6px;}
+  .cv-hub-orbit.o6{top:50px;left:-6px;}
+
+  /* Right column: delivery donuts */
+  .cv-donut-card{
+    background:rgba(255,255,255,.04);padding:10px 12px;display:flex;flex-direction:column;gap:8px;
+  }
+  .cv-donut-card .dc-title{
+    font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  }
+  .cv-donut-row{display:flex;align-items:center;gap:10px;}
+  .cv-donut{
+    width:46px;height:46px;border-radius:50%;
+    background:conic-gradient(var(--ey-yellow) 0deg var(--deg,0deg), rgba(255,255,255,.1) 0deg 360deg);
+    display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;
+  }
+  .cv-donut::before{content:"";position:absolute;inset:6px;background:var(--ey-offblack);border-radius:50%;}
+  .cv-donut .v{position:relative;z-index:1;font-size:10px;font-weight:800;color:#fff;}
+  .cv-donut.red{background:conic-gradient(var(--red) 0deg var(--deg,0deg), rgba(255,255,255,.1) 0deg 360deg);}
+  .cv-donut.orange{background:conic-gradient(var(--orange) 0deg var(--deg,0deg), rgba(255,255,255,.1) 0deg 360deg);}
+  .cv-donut.green{background:conic-gradient(var(--green) 0deg var(--deg,0deg), rgba(255,255,255,.1) 0deg 360deg);}
+  .cv-donut-info{flex:1;display:flex;flex-direction:column;gap:1px;}
+  .cv-donut-info .l1{font-size:10px;color:#fff;font-weight:700;}
+  .cv-donut-info .l2{font-size:8.5px;color:var(--gray-01);}
+
+  /* Timeline strip at bottom of cover */
+  .cv-timeline{
+    display:flex;align-items:center;gap:0;background:rgba(255,255,255,.04);padding:8px 12px;
+  }
+  .cv-tl-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+    border-right:1px solid rgba(255,255,255,.1);padding:0 4px;
+  }
+  .cv-tl-item:last-child{border-right:none;}
+  .cv-tl-item .yr{font-size:11px;font-weight:800;color:var(--ey-yellow);}
+  .cv-tl-item .ev{font-size:8px;color:var(--gray-02);text-align:center;line-height:1.2;}
+  .cv-tl-item.now .yr{color:#fff;}
+  .cv-tl-item.now .ev{color:var(--ey-yellow);font-weight:700;}
+
+  /* ============== HUB DIAGRAM (Cover) ============== */
+  .hub-diagram{
+    display:flex;align-items:center;justify-content:center;
+    gap:0;margin:14px 0;position:relative;height:180px;
+  }
+  .hub-left,.hub-right{display:flex;flex-direction:column;gap:6px;flex:1;}
+  .hub-right{align-items:flex-end;}
+  .hub-node{
+    border:1.5px solid var(--gray-01);color:#fff;
+    padding:6px 10px;font-size:10px;font-weight:600;letter-spacing:.3px;
+    background:rgba(255,255,255,.04);text-align:center;width:140px;
+  }
+  .hub-center{
+    background:var(--ey-yellow);color:var(--ey-offblack);
+    padding:14px 18px;font-size:13px;font-weight:800;
+    letter-spacing:.5px;text-transform:uppercase;text-align:center;
+    margin:0 14px;min-width:130px;
+  }
+  .hub-stat-row{
+    display:flex;justify-content:center;gap:24px;margin-top:14px;
+  }
+  .hub-stat{
+    text-align:center;color:#fff;
+  }
+  .hub-stat .num{
+    font-size:26px;font-weight:800;color:var(--ey-yellow);letter-spacing:-.5px;
+  }
+  .hub-stat .lbl{
+    font-size:9.5px;color:var(--gray-02);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:2px;
+  }
+
+  /* ============== FUND FLOW (Slide 1) ============== */
+  .fund-flow{
+    display:flex;align-items:center;gap:0;background:#FAFAFC;padding:10px 14px;border:1px solid var(--gray-02);
+  }
+  .ff-node{
+    flex:1;text-align:center;padding:8px 6px;display:flex;flex-direction:column;gap:2px;
+    background:#fff;border:1px solid var(--gray-02);
+  }
+  .ff-node .lbl{font-size:9px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;}
+  .ff-node .val{font-size:13px;font-weight:800;color:var(--ey-offblack);}
+  .ff-node.src{background:var(--ey-yellow);border-color:var(--ey-yellow);}
+  .ff-node.dst{background:#F7F7FA;}
+  .ff-arrow{
+    flex:0 0 40px;display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:700;color:var(--ey-offblack);
+  }
+  .ff-total{
+    flex:0 0 100px;text-align:center;padding:8px;background:var(--ey-offblack);color:#fff;
+  }
+  .ff-total .lbl{font-size:9px;font-weight:700;color:var(--ey-yellow);letter-spacing:.5px;text-transform:uppercase;}
+  .ff-total .val{font-size:14px;font-weight:800;color:#fff;}
+
+  /* ============== COMPONENT COLUMN (Slide 2) ============== */
+  .comp-col{
+    background:#FAFAFC;border-top:3px solid var(--ey-yellow);
+    padding:8px 8px;display:flex;flex-direction:column;gap:5px;min-height:0;
+  }
+  .comp-col-head{
+    display:flex;align-items:center;justify-content:space-between;gap:6px;
+  }
+  .comp-col-head h4{
+    font-size:9.5px;color:var(--ey-offblack);text-transform:uppercase;letter-spacing:.5px;font-weight:800;flex:1;
+  }
+  .comp-col .comp-item{
+    font-size:9px;color:var(--ey-offblack);line-height:1.35;
+    background:#fff;border:1px solid var(--gray-02);padding:5px 6px;
+    display:flex;justify-content:space-between;align-items:center;gap:4px;
+  }
+  .comp-col .comp-item .lbl{font-weight:700;display:block;margin-bottom:1px;}
+  .comp-col .comp-item .sub{color:var(--gray-01);font-size:8.5px;display:block;}
+  .comp-col .comp-item.warn{border-left:3px solid var(--orange);}
+  .comp-col .comp-item.ok{border-left:3px solid var(--green);}
+  .comp-col .comp-item.bad{border-left:3px solid var(--red);}
+  .comp-col .comp-item .mini-pct{
+    font-size:10px;font-weight:800;color:var(--ey-offblack);flex-shrink:0;
+  }
+
+  /* ============== ISSUE CARDS (Slide 4) ============== */
+  .issue-card{
+    background:#fff;border:1px solid var(--gray-02);border-top:3px solid var(--red);
+    padding:10px 12px;display:flex;flex-direction:column;gap:5px;
+  }
+  .issue-card.high{border-top-color:var(--orange);}
+  .issue-card .ic-head{
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .issue-card .ic-title{font-size:12px;font-weight:800;color:var(--ey-offblack);}
+  .issue-card .ic-body{font-size:10.5px;color:var(--ey-offblack);line-height:1.4;}
+  .issue-card .ic-foot{
+    display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid var(--gray-02);padding-top:5px;margin-top:2px;
+  }
+  .issue-card .ic-foot .sev-label{font-size:9px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;}
+
+  /* ============== NETWORK TOPOLOGY (Slide 5) ============== */
+  .topo{
+    background:#FAFAFC;border:1px solid var(--gray-02);padding:14px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .topo-title{
+    font-size:10px;font-weight:800;color:var(--gray-01);letter-spacing:.6px;text-transform:uppercase;
+  }
+  .topo-row{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .topo-node{
+    padding:6px 10px;background:#fff;border:1.5px solid var(--gray-02);
+    text-align:center;font-size:9.5px;font-weight:700;color:var(--ey-offblack);
+    min-width:60px;
+  }
+  .topo-node.hub{background:var(--ey-offblack);color:#fff;border-color:var(--ey-offblack);}
+  .topo-node.spof{background:var(--red);color:#fff;border-color:var(--red);}
+  .topo-node.leaf{font-size:8.5px;min-width:48px;}
+  .topo-arrow{
+    color:var(--gray-01);font-size:14px;font-weight:700;
+  }
+  .topo-arrow.danger{color:var(--red);}
+  .topo-legend{
+    display:flex;justify-content:center;gap:14px;font-size:9px;color:var(--gray-01);
+    border-top:1px solid var(--gray-02);padding-top:6px;
+  }
+  .topo-legend .swatch{display:inline-block;width:9px;height:9px;margin-right:4px;vertical-align:middle;}
+
+  /* ============== ESCALATION FLOW (Slide 6) ============== */
+  .flow{display:flex;align-items:stretch;gap:0;margin:4px 0;}
+  .flow-step{
+    flex:1;background:#F7F7FA;border:1px solid var(--gray-02);
+    padding:10px 12px;display:flex;flex-direction:column;gap:4px;position:relative;
+  }
+  .flow-step .num{font-size:10px;color:var(--gray-01);font-weight:700;letter-spacing:.8px;}
+  .flow-step .title{font-size:11px;color:var(--ey-offblack);font-weight:700;line-height:1.3;}
+  .flow-step::after{
+    content:"";position:absolute;right:-7px;top:50%;transform:translateY(-50%);
+    width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;
+    border-left:7px solid var(--gray-02);z-index:2;
+  }
+  .flow-step:last-child::after{display:none;}
+  .flow-step.ey{border-top:3px solid var(--ey-yellow);}
+
+  .track{
+    background:#FAFAFC;padding:11px 13px;border:1px solid var(--gray-02);
+    display:flex;flex-direction:column;gap:5px;
+  }
+  .track h4{
+    font-size:11.5px;font-weight:800;color:var(--ey-offblack);
+    text-transform:uppercase;letter-spacing:.5px;
+    padding-bottom:4px;border-bottom:2px solid var(--ey-yellow);
+  }
+  .track .tr-item{
+    font-size:10px;line-height:1.4;color:var(--ey-offblack);
+    padding:4px 0 4px 26px;position:relative;
+  }
+  .track .tr-item .n{
+    position:absolute;left:0;top:5px;width:18px;height:18px;
+    background:var(--ey-yellow);color:var(--ey-offblack);
+    font-weight:800;font-size:9.5px;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ============== QUADRANT (Slide 7) ============== */
+  .quad{
+    background:#fff;border:1px solid var(--gray-02);border-top:3px solid var(--ey-yellow);
+    padding:9px 11px;display:flex;flex-direction:column;gap:4px;min-height:0;
+  }
+  .quad .q-head{display:flex;justify-content:space-between;align-items:center;}
+  .quad h4{
+    font-size:10.5px;font-weight:800;color:var(--ey-offblack);
+    text-transform:uppercase;letter-spacing:.4px;
+  }
+  .quad .q-count{
+    background:var(--ey-offblack);color:var(--ey-yellow);
+    font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;
+  }
+  .quad ul{list-style:none;padding:0;margin:0;flex:1;}
+  .quad ul li{
+    font-size:9px;line-height:1.4;color:var(--ey-offblack);
+    padding:3px 0 3px 10px;position:relative;
+  }
+  .quad ul li::before{
+    content:"";position:absolute;left:0;top:8px;width:4px;height:4px;background:var(--ey-yellow);
+  }
+  .quad ul li .li-h{display:inline-block;width:10px;height:10px;border-radius:1px;vertical-align:middle;margin-right:3px;}
+
+  /* ============== COMPARISON METER (Slide 8) ============== */
+  .cmp-row{
+    display:flex;align-items:center;gap:8px;padding:5px 0;
+    border-bottom:1px solid var(--gray-02);
+  }
+  .cmp-row:last-child{border-bottom:none;}
+  .cmp-row .cmp-label{flex:1;font-size:10.5px;color:var(--ey-offblack);font-weight:600;}
+  .cmp-row .cmp-meter{
+    flex:0 0 90px;display:flex;gap:2px;align-items:flex-end;height:16px;
+  }
+  .cmp-row .cmp-meter .cm{width:14px;background:#EEEFF3;border-radius:1px;}
+  .cmp-row .cmp-meter .cm:nth-child(1){height:30%;}
+  .cmp-row .cmp-meter .cm:nth-child(2){height:55%;}
+  .cmp-row .cmp-meter .cm:nth-child(3){height:80%;}
+  .cmp-row .cmp-meter .cm:nth-child(4){height:100%;}
+  .cmp-row .cmp-meter .cm.on{background:var(--red);}
+  .cmp-row .cmp-meter .cm.on.warn{background:var(--orange);}
+  .cmp-row .cmp-sev{
+    flex:0 0 70px;font-size:9px;font-weight:800;letter-spacing:.4px;text-align:right;
+  }
+
+  /* ============== SYNC FLOW (Slide 9) ============== */
+  .sync-flow{display:flex;align-items:stretch;gap:0;margin:2px 0 6px 0;}
+  .sync-flow .sf-node{
+    flex:1;padding:11px 13px;background:#F7F7FA;border:1px solid var(--gray-02);
+    border-top:3px solid var(--ey-yellow);display:flex;flex-direction:column;gap:3px;position:relative;
+  }
+  .sync-flow .sf-node.warn{border-top-color:var(--orange);}
+  .sync-flow .sf-node.bad{border-top-color:var(--red);}
+  .sync-flow .sf-node .lbl{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--gray-01);text-transform:uppercase;}
+  .sync-flow .sf-node .ttl{font-size:11.5px;font-weight:700;color:var(--ey-offblack);line-height:1.3;}
+  .sync-flow .sf-arrow{
+    display:flex;align-items:center;justify-content:center;
+    width:22px;color:var(--gray-01);font-size:22px;font-weight:700;
+  }
+
+  /* ============== CLOSING ============== */
+  .closing{
+    background:var(--ey-offblack);color:#fff;
+    width:100%;height:100%;
+    display:flex;flex-direction:column;justify-content:space-between;padding:50px 60px;
+  }
+  .closing .top-row{display:flex;justify-content:space-between;align-items:flex-start;}
+  .closing .logo-tag{
+    font-size:10.5px;letter-spacing:3px;color:var(--ey-yellow);font-weight:800;
+    border-left:3px solid var(--ey-yellow);padding-left:10px;
+  }
+  .closing .mid{display:flex;flex-direction:column;gap:14px;flex:1;}
+  .closing h1{font-size:54px;font-weight:800;letter-spacing:-1.5px;color:#fff;line-height:1;}
+  .closing .accent{width:70px;height:4px;background:var(--ey-yellow);}
+  .closing .sub{font-size:14px;color:var(--gray-02);font-weight:400;max-width:780px;line-height:1.45;}
+  .closing .bottom-row{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-top:1px solid #4A4A55;padding-top:10px;
+    font-size:9.5px;color:var(--gray-02);letter-spacing:.5px;
+  }
+  .closing .bottom-row .right{color:var(--ey-yellow);font-weight:700;}
+
+  /* ====== CLOSING INFOGRAPHICS ====== */
+  .closing-grid{
+    display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin-top:6px;
+  }
+  /* KPI tiles with progress bars */
+  .ty-kpi-card{
+    background:rgba(255,255,255,.04);padding:12px 14px;display:flex;flex-direction:column;gap:8px;
+  }
+  .ty-kpi-card .ty-title{
+    font-size:10px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+    padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .ty-kpi-row{display:flex;flex-direction:column;gap:3px;}
+  .ty-kpi-row .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .ty-kpi-row .l1{font-size:10.5px;color:#fff;font-weight:700;}
+  .ty-kpi-row .v1{font-size:11px;color:var(--ey-yellow);font-weight:800;}
+  .ty-kpi-row .ty-bar{
+    height:6px;background:rgba(255,255,255,.08);position:relative;
+  }
+  .ty-kpi-row .ty-bar > span{
+    position:absolute;left:0;top:0;height:100%;background:var(--ey-yellow);
+  }
+  .ty-kpi-row .ty-bar > span.red{background:var(--red);}
+  .ty-kpi-row .ty-bar > span.orange{background:var(--orange);}
+  .ty-kpi-row .ty-bar > span.green{background:var(--green);}
+
+  /* Overall delivery donut */
+  .ty-donut-wrap{
+    background:rgba(255,255,255,.04);padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  }
+  .ty-donut-wrap .ty-title{
+    font-size:10px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+    align-self:flex-start;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.12);width:100%;
+  }
+  .ty-big-donut{
+    width:140px;height:140px;border-radius:50%;
+    background:conic-gradient(var(--ey-yellow) 0deg 130deg, var(--red) 130deg 230deg, rgba(255,255,255,.1) 230deg 360deg);
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .ty-big-donut::before{
+    content:"";position:absolute;inset:18px;background:var(--ey-offblack);border-radius:50%;
+  }
+  .ty-big-donut .ty-bd-center{
+    position:relative;z-index:1;text-align:center;
+  }
+  .ty-big-donut .ty-bd-num{font-size:30px;font-weight:800;color:#fff;line-height:1;letter-spacing:-.5px;}
+  .ty-big-donut .ty-bd-lbl{font-size:8.5px;color:var(--gray-02);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:3px;}
+  .ty-donut-legend{
+    display:flex;justify-content:space-around;width:100%;font-size:8.5px;
+  }
+  .ty-donut-legend .lg{display:flex;align-items:center;gap:5px;color:var(--gray-02);}
+  .ty-donut-legend .lg .sw{width:8px;height:8px;border-radius:1px;}
+  .ty-donut-legend .lg b{color:#fff;font-weight:700;}
+
+  /* Issues by severity — horizontal stacked bar + breakdown */
+  .ty-sev-card{
+    background:rgba(255,255,255,.04);padding:12px 14px;display:flex;flex-direction:column;gap:10px;
+  }
+  .ty-sev-card .ty-title{
+    font-size:10px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+    padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .ty-stacked-bar{
+    display:flex;height:30px;border-radius:2px;overflow:hidden;
+  }
+  .ty-stacked-bar > div{
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:#fff;
+  }
+  .ty-stacked-bar .crit{background:var(--red);}
+  .ty-stacked-bar .high{background:var(--orange);}
+  .ty-stacked-bar .info{background:var(--blue);}
+  .ty-sev-list{display:flex;flex-direction:column;gap:5px;}
+  .ty-sev-list .row{display:flex;align-items:center;gap:8px;font-size:10px;color:#fff;}
+  .ty-sev-list .row .sw{width:9px;height:9px;flex-shrink:0;}
+  .ty-sev-list .row .l{flex:1;font-weight:600;}
+  .ty-sev-list .row .v{font-weight:800;color:var(--ey-yellow);}
+
+  /* Stakeholder comparison mini bars */
+  .ty-sh-card{
+    background:rgba(255,255,255,.04);padding:12px 14px;display:flex;flex-direction:column;gap:8px;
+    grid-column:span 3;
+  }
+  .ty-sh-card .ty-title{
+    font-size:10px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+    padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .ty-sh-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .ty-sh-col h5{
+    font-size:10px;color:#fff;font-weight:800;letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase;
+  }
+  .ty-sh-col h5 .tag{
+    display:inline-block;font-size:8px;font-weight:800;padding:2px 6px;margin-left:6px;border-radius:2px;
+    background:var(--red);color:#fff;letter-spacing:.4px;
+  }
+  .ty-sh-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+  .ty-sh-bar-row .l{flex:1;font-size:9px;color:var(--gray-02);font-weight:600;}
+  .ty-sh-bar-row .bar{flex:0 0 80px;height:7px;background:rgba(255,255,255,.08);position:relative;}
+  .ty-sh-bar-row .bar > span{position:absolute;left:0;top:0;height:100%;background:var(--red);}
+  .ty-sh-bar-row .bar > span.warn{background:var(--orange);}
+  .ty-sh-bar-row .v{flex:0 0 22px;text-align:right;font-size:9px;font-weight:700;color:var(--ey-yellow);}
+
+  /* ============== ANIMATIONS LAYER (infographics + animations heavy) ============== */
+
+  /* ----- Keyframes ----- */
+  @keyframes eyFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes eyFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes eyFadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes eyFadeLeft { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes eyFadeRight { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes eyScaleIn { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+  @keyframes eyPopIn { 0% { opacity: 0; transform: scale(0.3); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes eyGrowBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes eyGrowUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes eyPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+  @keyframes eyPulseSoft { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
+  @keyframes eyGlow { 0%, 100% { box-shadow: 0 0 0 6px rgba(255,230,0,0.15); } 50% { box-shadow: 0 0 0 14px rgba(255,230,0,0.05); } }
+  @keyframes eySpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes eySpinRev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+  @keyframes eyBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes eyShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* ----- Slide-level entrance ----- */
+  .slide.active .slide-header { animation: eyFadeDown 0.5s ease-out both; }
+  .slide.active .ey-bar { animation: eyGrowBar 0.6s ease-out both; transform-origin: left; }
+  .slide.active .slide-footer { animation: eyFadeIn 0.5s ease-out both; animation-delay: 0.6s; }
+
+  /* ----- Body content staggered fade-up ----- */
+  .slide.active .slide-body > * { animation: eyFadeUp 0.5s ease-out both; }
+  .slide.active .slide-body > *:nth-child(1) { animation-delay: 0.15s; }
+  .slide.active .slide-body > *:nth-child(2) { animation-delay: 0.25s; }
+  .slide.active .slide-body > *:nth-child(3) { animation-delay: 0.35s; }
+  .slide.active .slide-body > *:nth-child(4) { animation-delay: 0.45s; }
+  .slide.active .slide-body > *:nth-child(5) { animation-delay: 0.55s; }
+
+  /* ----- Metric tiles stagger ----- */
+  .slide.active .metric,
+  .slide.active .cv-stat { animation: eyFadeUp 0.5s ease-out both; }
+  .slide.active .metric:nth-child(1), .slide.active .cv-stat:nth-child(1) { animation-delay: 0.2s; }
+  .slide.active .metric:nth-child(2), .slide.active .cv-stat:nth-child(2) { animation-delay: 0.28s; }
+  .slide.active .metric:nth-child(3), .slide.active .cv-stat:nth-child(3) { animation-delay: 0.36s; }
+  .slide.active .metric:nth-child(4), .slide.active .cv-stat:nth-child(4) { animation-delay: 0.44s; }
+  .slide.active .metric:nth-child(5), .slide.active .cv-stat:nth-child(5) { animation-delay: 0.52s; }
+  .slide.active .metric:nth-child(6), .slide.active .cv-stat:nth-child(6) { animation-delay: 0.6s; }
+  .slide.active .metric:nth-child(7) { animation-delay: 0.68s; }
+  .slide.active .metric:nth-child(8) { animation-delay: 0.76s; }
+
+  /* ----- Cards / quads / tracks stagger ----- */
+  .slide.active .card,
+  .slide.active .issue-card,
+  .slide.active .quad,
+  .slide.active .comp-col,
+  .slide.active .track,
+  .slide.active .cv-donut-card,
+  .slide.active .ty-kpi-card,
+  .slide.active .ty-donut-wrap,
+  .slide.active .ty-sev-card,
+  .slide.active .ty-sh-card,
+  .slide.active .topo { animation: eyFadeUp 0.5s ease-out both; }
+  .slide.active .card:nth-child(1), .slide.active .issue-card:nth-child(1), .slide.active .quad:nth-child(1) { animation-delay: 0.2s; }
+  .slide.active .card:nth-child(2), .slide.active .issue-card:nth-child(2), .slide.active .quad:nth-child(2) { animation-delay: 0.3s; }
+  .slide.active .card:nth-child(3), .slide.active .issue-card:nth-child(3), .slide.active .quad:nth-child(3) { animation-delay: 0.4s; }
+  .slide.active .card:nth-child(4), .slide.active .issue-card:nth-child(4), .slide.active .quad:nth-child(4) { animation-delay: 0.5s; }
+  .slide.active .card:nth-child(5), .slide.active .issue-card:nth-child(5) { animation-delay: 0.6s; }
+  .slide.active .card:nth-child(6), .slide.active .issue-card:nth-child(6) { animation-delay: 0.7s; }
+
+  /* ----- Donuts pop in ----- */
+  .slide.active .donut,
+  .slide.active .cv-donut,
+  .slide.active .ty-big-donut {
+    animation: eyPopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 0.3s;
+  }
+
+  /* ----- Cover hub diagram ----- */
+  .slide.active .cv-hub-wrap { animation: eyScaleIn 0.7s ease-out both; animation-delay: 0.3s; }
+  .slide.active .cv-hub-ring { animation: eySpin 40s linear infinite; animation-delay: 1s; }
+  .slide.active .cv-hub-ring.inner { animation: eySpinRev 30s linear infinite; animation-delay: 1s; }
+  .slide.active .cv-hub-center { animation: eyGlow 3s ease-in-out infinite; animation-delay: 1s; }
+  .slide.active .cv-hub-orbit { animation: eyPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .slide.active .cv-hub-orbit:nth-child(3) { animation-delay: 0.5s; }
+  .slide.active .cv-hub-orbit:nth-child(4) { animation-delay: 0.6s; }
+  .slide.active .cv-hub-orbit:nth-child(5) { animation-delay: 0.7s; }
+  .slide.active .cv-hub-orbit:nth-child(6) { animation-delay: 0.8s; }
+  .slide.active .cv-hub-orbit:nth-child(7) { animation-delay: 0.9s; }
+  .slide.active .cv-hub-orbit:nth-child(8) { animation-delay: 1.0s; }
+
+  /* ----- Progress bars grow from left ----- */
+  .slide.active .bar-fill,
+  .slide.active .ty-bar > span,
+  .slide.active .ty-sh-bar-row .bar > span {
+    animation: eyGrowBar 0.9s cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-delay: 0.4s;
+    transform-origin: left;
+  }
+  .slide.active .bar-row:nth-child(1) .bar-fill { animation-delay: 0.4s; }
+  .slide.active .bar-row:nth-child(2) .bar-fill { animation-delay: 0.45s; }
+  .slide.active .bar-row:nth-child(3) .bar-fill { animation-delay: 0.5s; }
+  .slide.active .bar-row:nth-child(4) .bar-fill { animation-delay: 0.55s; }
+  .slide.active .bar-row:nth-child(5) .bar-fill { animation-delay: 0.6s; }
+  .slide.active .bar-row:nth-child(6) .bar-fill { animation-delay: 0.65s; }
+  .slide.active .bar-row:nth-child(7) .bar-fill { animation-delay: 0.7s; }
+  .slide.active .bar-row:nth-child(8) .bar-fill { animation-delay: 0.75s; }
+  .slide.active .bar-row:nth-child(9) .bar-fill { animation-delay: 0.8s; }
+
+  /* ----- Gantt bars grow ----- */
+  .slide.active .gr-bar {
+    animation: eyGrowBar 0.7s ease-out both;
+    transform-origin: left;
+  }
+  .slide.active .gantt-row:nth-child(2) .gr-bar { animation-delay: 0.3s; }
+  .slide.active .gantt-row:nth-child(3) .gr-bar { animation-delay: 0.35s; }
+  .slide.active .gantt-row:nth-child(4) .gr-bar { animation-delay: 0.4s; }
+  .slide.active .gantt-row:nth-child(5) .gr-bar { animation-delay: 0.45s; }
+  .slide.active .gantt-row:nth-child(6) .gr-bar { animation-delay: 0.5s; }
+  .slide.active .gantt-row:nth-child(7) .gr-bar { animation-delay: 0.55s; }
+  .slide.active .gantt-row:nth-child(8) .gr-bar { animation-delay: 0.6s; }
+  .slide.active .gantt-row:nth-child(9) .gr-bar { animation-delay: 0.65s; }
+  .slide.active .gantt-row:nth-child(10) .gr-bar { animation-delay: 0.7s; }
+  .slide.active .gantt-row:nth-child(11) .gr-bar { animation-delay: 0.75s; }
+
+  /* ----- Flow steps slide in ----- */
+  .slide.active .flow-step,
+  .slide.active .sf-node { animation: eyFadeRight 0.5s ease-out both; }
+  .slide.active .flow-step:nth-child(1), .slide.active .sf-node:nth-child(1) { animation-delay: 0.2s; }
+  .slide.active .flow-step:nth-child(2), .slide.active .sf-node:nth-child(2) { animation-delay: 0.3s; }
+  .slide.active .flow-step:nth-child(3), .slide.active .sf-node:nth-child(3) { animation-delay: 0.4s; }
+  .slide.active .flow-step:nth-child(4), .slide.active .sf-node:nth-child(4) { animation-delay: 0.5s; }
+  .slide.active .flow-step:nth-child(5), .slide.active .sf-node:nth-child(5) { animation-delay: 0.6s; }
+
+  /* ----- Topology nodes pop ----- */
+  .slide.active .topo-node { animation: eyPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .slide.active .topo-node:nth-child(1) { animation-delay: 0.3s; }
+  .slide.active .topo-node:nth-child(2) { animation-delay: 0.4s; }
+  .slide.active .topo-node:nth-child(3) { animation-delay: 0.5s; }
+
+  /* ----- Timeline items fade up ----- */
+  .slide.active .cv-tl-item { animation: eyFadeUp 0.4s ease-out both; }
+  .slide.active .cv-tl-item:nth-child(1) { animation-delay: 0.5s; }
+  .slide.active .cv-tl-item:nth-child(2) { animation-delay: 0.55s; }
+  .slide.active .cv-tl-item:nth-child(3) { animation-delay: 0.6s; }
+  .slide.active .cv-tl-item:nth-child(4) { animation-delay: 0.65s; }
+  .slide.active .cv-tl-item:nth-child(5) { animation-delay: 0.7s; }
+  .slide.active .cv-tl-item:nth-child(6) { animation-delay: 0.75s; }
+
+  /* ----- Severity meters grow up ----- */
+  .slide.active .sev-meter .sb,
+  .slide.active .cmp-meter .cm {
+    animation: eyGrowUp 0.5s ease-out both;
+    transform-origin: bottom;
+  }
+  .slide.active .sev-meter .sb:nth-child(1), .slide.active .cmp-meter .cm:nth-child(1) { animation-delay: 0.4s; }
+  .slide.active .sev-meter .sb:nth-child(2), .slide.active .cmp-meter .cm:nth-child(2) { animation-delay: 0.45s; }
+  .slide.active .sev-meter .sb:nth-child(3), .slide.active .cmp-meter .cm:nth-child(3) { animation-delay: 0.5s; }
+  .slide.active .sev-meter .sb:nth-child(4), .slide.active .cmp-meter .cm:nth-child(4) { animation-delay: 0.55s; }
+  .slide.active .sev-meter .sb:nth-child(5), .slide.active .cmp-meter .cm:nth-child(5) { animation-delay: 0.6s; }
+
+  /* ----- Heat cells pop ----- */
+  .slide.active .heat-cell { animation: eyPopIn 0.3s ease-out both; animation-delay: 0.4s; }
+
+  /* ----- Stacked bars grow ----- */
+  .slide.active .ty-stacked-bar > div {
+    animation: eyGrowBar 0.7s ease-out both;
+    transform-origin: left;
+    animation-delay: 0.4s;
+  }
+
+  /* ----- Badges pop ----- */
+  .slide.active .badge { animation: eyPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: 0.5s; }
+
+  /* ----- Cover & closing specifics ----- */
+  .slide.active .cover .top-row,
+  .slide.active .closing .top-row { animation: eyFadeDown 0.5s ease-out both; }
+  .slide.active .cover .bottom-row,
+  .slide.active .closing .bottom-row { animation: eyFadeUp 0.5s ease-out both; animation-delay: 0.8s; }
+  .slide.active .cover h1,
+  .slide.active .closing h1 { animation: eyFadeUp 0.6s ease-out both; animation-delay: 0.2s; }
+  .slide.active .cover .accent-line,
+  .slide.active .closing .accent { animation: eyGrowBar 0.5s ease-out both; animation-delay: 0.5s; transform-origin: left; }
+
+  /* ----- Continuous animations (always on when slide active) ----- */
+  .slide.active .cv-hub-center { animation: eyGlow 3s ease-in-out infinite; animation-delay: 1.2s; }
+  .slide.active .cv-hub-ring { animation: eySpin 40s linear infinite; animation-delay: 1.2s; }
+  .slide.active .cv-hub-ring.inner { animation: eySpinRev 30s linear infinite; animation-delay: 1.2s; }
+
+  /* ----- HOVER MICRO-INTERACTIONS ----- */
+  .card, .metric, .issue-card, .quad, .cv-stat, .cv-donut-row, .ty-kpi-row,
+  .comp-col, .comp-item, .track, .topo-node, .flow-step, .sf-node {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .card:hover, .issue-card:hover, .quad:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-color: var(--ey-yellow);
+  }
+  .metric:hover, .cv-stat:hover { transform: translateX(3px); }
+  .cv-donut-row:hover, .ty-kpi-row:hover { background: rgba(255,230,0,0.06); }
+  .comp-item:hover { border-color: var(--ey-yellow); transform: translateX(2px); }
+  .topo-node:hover, .flow-step:hover, .sf-node:hover {
+    transform: translateY(-2px);
+    border-color: var(--ey-yellow);
+  }
+  .donut, .cv-donut, .ty-big-donut { transition: transform 0.3s ease; cursor: pointer; }
+  .donut:hover, .cv-donut:hover, .ty-big-donut:hover { transform: scale(1.08); }
+  .bar-fill, .gr-bar, .ty-bar > span { transition: filter 0.2s ease; }
+  .bar-row:hover .bar-fill, .gantt-row:hover .gr-bar { filter: brightness(1.15); }
+  .nav-ui button, .nav-ui .dot, .nav-ui .grid-btn { transition: background 0.2s, transform 0.2s; }
+  .nav-ui .dot:hover { transform: scale(1.4); }
+  .grid-overlay .thumb { transition: border-color 0.15s, transform 0.15s; }
+
+  /* ----- Pulse on active nav dot ----- */
+  .nav-ui .dot.active { animation: eyPulseSoft 2s ease-in-out infinite; }
+
+  /* ----- Pulse on critical badges ----- */
+  .slide.active .badge-critical,
+  .slide.active .badge-pending { animation: eyPulseSoft 2.5s ease-in-out infinite; animation-delay: 1s; }
+
+  /* ----- Blinking red dot on critical issues ----- */
+  .slide.active .topo-node.spof {
+    animation: eyPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both, eyBlink 1.5s ease-in-out infinite 1.5s;
+  }
+
+  /* ----- Reduce motion fallback (accessibility + converter-safe) ----- */
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active *, .slide.active {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* ----- Static mode (converter-safe): add ?static to URL or set on body ----- */
+  body.static-mode .slide.active *,
+  body.static-mode .slide.active {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* ============== NAV UI ============== */
+  .nav-ui{
+    position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:14px;z-index:1000;
+    background:rgba(46,46,56,.95);padding:8px 16px;border-radius:24px;
+    box-shadow:0 4px 16px rgba(0,0,0,.25);
+    max-width:calc(100vw - 28px);
+  }
+  .nav-ui button{
+    background:transparent;border:none;color:#fff;cursor:pointer;
+    font-size:16px;font-weight:700;width:28px;height:28px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;transition:background .15s;
+  }
+  .nav-ui button:hover{background:rgba(255,230,0,.25);}
+  .nav-ui .pager{color:#fff;font-size:11px;font-weight:700;letter-spacing:1px;min-width:60px;text-align:center;}
+  .nav-ui .pager .cur{color:var(--ey-yellow);font-size:13px;}
+  .nav-ui .dots{display:flex;gap:5px;margin-left:4px;}
+  .nav-ui .dots .dot{
+    width:7px;height:7px;background:rgba(255,255,255,.35);border-radius:50%;
+    cursor:pointer;transition:background .15s,transform .15s;
+  }
+  .nav-ui .dots .dot:hover{background:rgba(255,230,0,.6);}
+  .nav-ui .dots .dot.active{background:var(--ey-yellow);transform:scale(1.3);}
+  .nav-ui .grid-btn{
+    background:var(--ey-yellow);color:var(--ey-offblack);
+    font-size:10px;font-weight:800;letter-spacing:.6px;
+    padding:5px 11px;border-radius:14px;margin-left:6px;text-transform:uppercase;
+  }
+  .nav-ui .grid-btn:hover{background:#fff;}
+
+  /* ============== GRID OVERLAY ============== */
+  .grid-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;
+    display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:24px 32px;overflow:auto;
+  }
+  .grid-overlay.show{display:flex;}
+  .grid-overlay .grid-header{
+    width:100%;display:flex;justify-content:space-between;align-items:center;
+    color:#fff;margin-bottom:18px;
+  }
+  .grid-overlay .grid-title{font-size:14px;font-weight:800;letter-spacing:1.5px;color:var(--ey-yellow);text-transform:uppercase;}
+  .grid-overlay .grid-close{
+    background:var(--ey-yellow);color:var(--ey-offblack);border:none;
+    font-size:11px;font-weight:800;letter-spacing:.6px;
+    padding:7px 14px;border-radius:14px;cursor:pointer;text-transform:uppercase;
+  }
+  .grid-overlay .thumb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:1400px;}
+  .grid-overlay .thumb{
+    background:#fff;border:2px solid transparent;cursor:pointer;
+    aspect-ratio:16/9;overflow:hidden;position:relative;
+    transition:border-color .15s,transform .15s;
+  }
+  .grid-overlay .thumb:hover{border-color:var(--ey-yellow);transform:scale(1.02);}
+  .grid-overlay .thumb.active{border-color:var(--ey-yellow);}
+  .grid-overlay .thumb .thumb-num{
+    position:absolute;top:6px;left:8px;font-size:11px;font-weight:800;
+    color:var(--ey-yellow);background:rgba(46,46,56,.85);
+    padding:2px 7px;border-radius:2px;z-index:10;letter-spacing:.5px;
+  }
+  .grid-overlay .thumb .slide{
+    position:absolute !important;top:0;left:0;
+    width:1280px;height:720px;
+    transform:scale(.22);transform-origin:top left;
+    pointer-events:none;box-shadow:none !important;display:flex !important;
+  }
+  @media print{.nav-ui,.grid-overlay{display:none !important;}}
+</style>
+</head>
+<body>
+<div id="deck">
+<div class="slide-stage">
+
+<!-- ============== SLIDE 0 — COVER ============== -->
+<section class="slide active" data-slide="0">
+  <div class="cover">
+    <div class="top-row">
+      <div class="logo-tag">SAFE CITY PROJECT &nbsp;&middot;&nbsp; DELHI POLICE</div>
+      <div class="logo-tag" style="border-left:none;border-right:3px solid var(--ey-yellow);padding-left:0;padding-right:10px;text-align:right;">IMPLEMENTATION STATUS BRIEFING</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:18px;align-items:start;">
+      <!-- LEFT: stats tiles + ecosystem caption -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:10px;color:var(--ey-yellow);font-weight:700;letter-spacing:2px;">INTEGRATED PUBLIC SAFETY ECOSYSTEM</div>
+        <h1>AI-Powered Safe City Command Ecosystem</h1>
+        <div class="accent-line"></div>
+        <div class="sub" style="font-size:11.5px;">A unified Safe City intelligence layer integrating CCTV Surveillance, AI Video Analytics, AI FRS, ANPR, Data Lake and Video Summarization to enable real-time command, response and decision support across Central, District, Police Station and Mobile Response units.</div>
+
+        <div class="cv-stats" style="margin-top:4px;">
+          <div class="cv-stat"><div class="num">16</div><div class="lbl">Districts</div><div class="sub">All Delhi Police districts</div></div>
+          <div class="cv-stat"><div class="num">9,989</div><div class="lbl">Cameras Planned</div><div class="sub">Fixed + PTZ + ANPR</div></div>
+          <div class="cv-stat"><div class="num">2,321</div><div class="lbl">Cameras Deployed</div><div class="sub">23% of target</div></div>
+          <div class="cv-stat"><div class="num">32</div><div class="lbl">Databases</div><div class="sub">22 integrated</div></div>
+          <div class="cv-stat" style="grid-column:span 2;"><div class="num">4 Yrs</div><div class="lbl">In Execution Since 2022</div><div class="sub">10 timeline revisions &middot; 2 Acceptance Criteria revisions</div></div>
+        </div>
+      </div>
+
+      <!-- CENTER: circular hub diagram -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="font-size:9.5px;color:var(--ey-yellow);font-weight:800;letter-spacing:1px;text-transform:uppercase;">Ecosystem Hub</div>
+        <div class="cv-hub-wrap">
+          <div class="cv-hub-ring"></div>
+          <div class="cv-hub-ring inner"></div>
+          <div class="cv-hub-center">
+            <div class="lbl-top">Delhi</div>
+            <div class="lbl-main">SAFE<br/>CITY</div>
+          </div>
+          <div class="cv-hub-orbit o1">CCTV<br/>Surveillance</div>
+          <div class="cv-hub-orbit o2">AI Video<br/>Analytics</div>
+          <div class="cv-hub-orbit o3">ANPR</div>
+          <div class="cv-hub-orbit o4">Mobile<br/>Response</div>
+          <div class="cv-hub-orbit o5">AI FRS</div>
+          <div class="cv-hub-orbit o6">Data Lake</div>
+        </div>
+        <div style="display:flex;gap:14px;text-align:center;margin-top:2px;">
+          <div>
+            <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;">Unified Command Fabric</div>
+            <div style="font-size:9.5px;color:var(--gray-02);margin-top:2px;">Central &middot; District &middot; PS &middot; Mobile</div>
+          </div>
+          <div style="border-left:1px solid rgba(255,255,255,.15);padding-left:14px;">
+            <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.8px;text-transform:uppercase;">AI Situational Intel</div>
+            <div style="font-size:9.5px;color:var(--gray-02);margin-top:2px;">Analytics &middot; FRS &middot; ANPR &middot; Summarization</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: delivery donuts -->
+      <div class="cv-donut-card">
+        <div class="dc-title">Delivery Snapshot</div>
+        <div class="cv-donut-row">
+          <div class="cv-donut red" style="--deg:83deg;"><span class="v">23%</span></div>
+          <div class="cv-donut-info"><div class="l1">Field Cameras</div><div class="l2">2,321 / 9,989 deployed</div></div>
+        </div>
+        <div class="cv-donut-row">
+          <div class="cv-donut orange" style="--deg:217deg;"><span class="v">60%</span></div>
+          <div class="cv-donut-info"><div class="l1">Command &amp; Control</div><div class="l2">C4i 100% &middot; C3i 69% &middot; C2i 52%</div></div>
+        </div>
+        <div class="cv-donut-row">
+          <div class="cv-donut" style="--deg:248deg;"><span class="v">69%</span></div>
+          <div class="cv-donut-info"><div class="l1">DB Integration</div><div class="l2">22 / 32 databases connected</div></div>
+        </div>
+        <div class="cv-donut-row">
+          <div class="cv-donut orange" style="--deg:122deg;"><span class="v">34%</span></div>
+          <div class="cv-donut-info"><div class="l1">Community Surv.</div><div class="l2">5,430 / 15,998 cameras</div></div>
+        </div>
+        <div class="cv-donut-row">
+          <div class="cv-donut red" style="--deg:0deg;"><span class="v">0%</span></div>
+          <div class="cv-donut-info"><div class="l1">AI Apps (FRS/ANPR)</div><div class="l2">Non-functional since 13-04-2026</div></div>
+        </div>
+        <div class="cv-donut-row">
+          <div class="cv-donut orange" style="--deg:180deg;"><span class="v">50%</span></div>
+          <div class="cv-donut-info"><div class="l1">Data Centre</div><div class="l2">DC online &middot; nDR pending</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline strip -->
+    <div class="cv-timeline">
+      <div class="cv-tl-item"><div class="yr">2022</div><div class="ev">Project<br/>Inception</div></div>
+      <div class="cv-tl-item"><div class="yr">2023</div><div class="ev">NEC + RailTel<br/>onboarded</div></div>
+      <div class="cv-tl-item"><div class="yr">2024</div><div class="ev">Stage 1<br/>planning</div></div>
+      <div class="cv-tl-item"><div class="yr">2025</div><div class="ev">Field rollout<br/>begins</div></div>
+      <div class="cv-tl-item now"><div class="yr">2026</div><div class="ev">Stage 1 &amp; 2<br/>delivered</div></div>
+      <div class="cv-tl-item"><div class="yr">Aug 2026</div><div class="ev">Final<br/>commit date</div></div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="left">SAFE CITY PROJECT OF DELHI POLICE</div>
+      <div class="right">CONFIDENTIAL &middot; FOR OFFICIAL USE</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 1 — IMPLEMENTATION STATUS (KPIs + fund flow + progress bars) ============== -->
+<section class="slide" data-slide="1">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 01 &middot; Project Snapshot</div>
+    <div class="slide-title">Delhi Safe City Project — Implementation Status Briefing</div>
+    <div class="slide-subtitle">Critical issues with Master System Integrator (NEC) and Internet Service Provider (RailTel)</div>
+  </div>
+
+  <div class="slide-body">
+    <div class="metric-grid">
+      <div class="metric"><div class="value">4 Yrs</div><div class="label">In implementation since 2022 — still incomplete</div></div>
+      <div class="metric amber"><div class="value">10</div><div class="label">Timeline revisions — none honoured in full</div></div>
+      <div class="metric red"><div class="value">2</div><div class="label">Acceptance Criteria revisions — still not met</div></div>
+      <div class="metric blue"><div class="value">16</div><div class="label">Districts dependent on this network</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="card">
+          <div class="card-title">Fund Flow &middot; Delhi Police &rarr; C-DAC &rarr; Vendors</div>
+          <div class="fund-flow" style="padding:8px 8px;">
+            <div class="ff-node src">
+              <div class="lbl">Delhi Police</div>
+              <div class="val">&#8377; 362.81 Cr</div>
+            </div>
+            <div class="ff-arrow">&rsaquo;</div>
+            <div class="ff-node dst">
+              <div class="lbl">C-DAC</div>
+              <div class="val">&#8377; 101.72 Cr</div>
+              <div class="sub" style="font-size:8px;color:var(--gray-01);">Available</div>
+            </div>
+            <div class="ff-arrow">&rsaquo;</div>
+            <div class="ff-node dst">
+              <div class="lbl">To NEC</div>
+              <div class="val">&#8377; 216.08 Cr</div>
+            </div>
+            <div class="ff-node dst">
+              <div class="lbl">To RailTel</div>
+              <div class="val">&#8377; 22.06 Cr</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Programme Context</div>
+          <div class="card-body">
+            A flagship citizen-safety programme launched in 2022 to build an AI-powered surveillance and command ecosystem across all 16 districts of Delhi. The project has undergone multiple timeline revisions; the Acceptance Criteria has been revised twice, and both revisions remain unmet.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Delivery Progress &middot; Key Workstreams</div>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
+          <div class="bar-row">
+            <div class="bar-label">Field Cameras</div>
+            <div class="bar-track"><div class="bar-fill red" style="width:23%;"></div></div>
+            <div class="bar-value">2,321 / 9,989</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">C2i Police Stations</div>
+            <div class="bar-track"><div class="bar-fill orange" style="width:52%;"></div></div>
+            <div class="bar-value">94 / 182</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">C3i Districts</div>
+            <div class="bar-track"><div class="bar-fill orange" style="width:69%;"></div></div>
+            <div class="bar-value">11 / 16</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">DB Integration</div>
+            <div class="bar-track"><div class="bar-fill" style="width:69%;"></div></div>
+            <div class="bar-value">22 / 32</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Public Annunciation</div>
+            <div class="bar-track"><div class="bar-fill orange" style="width:42%;"></div></div>
+            <div class="bar-value">125 / 300</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Community Surv.</div>
+            <div class="bar-track"><div class="bar-fill orange" style="width:34%;"></div></div>
+            <div class="bar-value">5,430 / 15,998</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">C4i (HQ)</div>
+            <div class="bar-track"><div class="bar-fill green" style="width:100%;"></div></div>
+            <div class="bar-value">01 / 01</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Data Centre</div>
+            <div class="bar-track"><div class="bar-fill green" style="width:100%;"></div></div>
+            <div class="bar-value">01 / 01</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">nDR (Shalimar)</div>
+            <div class="bar-track"><div class="bar-fill red" style="width:0%;"></div></div>
+            <div class="bar-value">0 / 01</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Implementation Status Briefing &middot; Slide 02</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 2 — COMPONENTS OVERVIEW (with donuts) ============== -->
+<section class="slide" data-slide="2">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 02 &middot; Component Delivery</div>
+    <div class="slide-title">Implementation Status &amp; Components Overview</div>
+    <div class="slide-subtitle">Six workstream groups &middot; donut charts show group-level completion %</div>
+  </div>
+
+  <div class="slide-body" style="padding:14px 32px 10px 32px;">
+    <div class="grid-6" style="flex:1;min-height:0;">
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Command &amp; Control</h4>
+          <div class="donut green" style="--deg:217deg;"><span class="val">60%</span></div>
+        </div>
+        <div class="comp-item ok"><div><span class="lbl">C4i — 01/01</span><span class="sub">IT &#10003; Non-IT &#10003;</span></div><div class="mini-pct" style="color:var(--green);">100%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">C3i — 11/16</span><span class="sub">05 pending</span></div><div class="mini-pct" style="color:var(--orange);">69%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">C2i — 94/182</span><span class="sub">88 pending &middot; S1:75 &middot; S2:19</span></div><div class="mini-pct" style="color:var(--orange);">52%</div></div>
+        <div class="comp-item ok"><div><span class="lbl">MCCV — 02/02</span><span class="sub">Complete</span></div><div class="mini-pct" style="color:var(--green);">100%</div></div>
+      </div>
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Field Devices</h4>
+          <div class="donut red" style="--deg:83deg;"><span class="val">23%</span></div>
+        </div>
+        <div class="comp-item bad"><div><span class="lbl">Field Cameras 2321/9989</span><span class="sub">S1:1521 &middot; S2:800 &middot; Pend:7668</span></div><div class="mini-pct" style="color:var(--red);">23%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">Fixed — 1571/6121</span></div><div class="mini-pct" style="color:var(--orange);">26%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">PTZ — 575/2246</span></div><div class="mini-pct" style="color:var(--orange);">26%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">ANPR — 175/1622</span></div><div class="mini-pct" style="color:var(--orange);">11%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">Public Annc. 125/300</span><span class="sub">Field 20/100 &middot; CC 105/200</span></div><div class="mini-pct" style="color:var(--orange);">42%</div></div>
+      </div>
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Software Apps</h4>
+          <div class="donut red" style="--deg:14deg;"><span class="val">0%</span></div>
+        </div>
+        <div class="comp-item warn"><div><span class="lbl">ICC — Partial</span></div><div class="mini-pct" style="color:var(--orange);">P</div></div>
+        <div class="comp-item warn"><div><span class="lbl">VMS — Partial</span></div><div class="mini-pct" style="color:var(--orange);">P</div></div>
+        <div class="comp-item bad"><div><span class="lbl">AI Analytics</span><span class="sub">Women/Crowd/Abandoned/Tamper</span></div><div class="mini-pct" style="color:var(--red);">OFF</div></div>
+        <div class="comp-item bad"><div><span class="lbl">ANPR System</span></div><div class="mini-pct" style="color:var(--red);">OFF</div></div>
+        <div class="comp-item bad"><div><span class="lbl">Face Recognition</span></div><div class="mini-pct" style="color:var(--red);">OFF</div></div>
+        <div class="comp-item warn"><div><span class="lbl">GIS Mapping</span></div><div class="mini-pct" style="color:var(--orange);">P</div></div>
+        <div class="comp-item bad" style="font-size:8px;color:var(--red);font-weight:700;text-align:center;">Non-func. since 13-04-2026</div>
+      </div>
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Software Integration</h4>
+          <div class="donut" style="--deg:248deg;"><span class="val">69%</span></div>
+        </div>
+        <div class="comp-item ok"><div><span class="lbl">Completed</span><span class="sub">22 databases</span></div><div class="mini-pct" style="color:var(--green);">22</div></div>
+        <div class="comp-item warn"><div><span class="lbl">In Progress</span><span class="sub">2 databases</span></div><div class="mini-pct" style="color:var(--orange);">02</div></div>
+        <div class="comp-item bad"><div><span class="lbl">Not Available</span><span class="sub">8 databases</span></div><div class="mini-pct" style="color:var(--red);">08</div></div>
+        <div class="comp-item" style="background:var(--ey-yellow);border:none;">
+          <div style="font-weight:800;color:var(--ey-offblack);">Total Databases</div>
+          <div class="mini-pct" style="font-size:16px;color:var(--ey-offblack);">32</div>
+        </div>
+      </div>
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Data Center</h4>
+          <div class="donut orange" style="--deg:180deg;"><span class="val">50%</span></div>
+        </div>
+        <div class="comp-item ok"><div><span class="lbl">DC — 01/01</span><span class="sub">IT &#10003; Non-IT &#10003;</span></div><div class="mini-pct" style="color:var(--green);">100%</div></div>
+        <div class="comp-item bad"><div><span class="lbl">nDR (Shalimar)</span><span class="sub">Pending</span></div><div class="mini-pct" style="color:var(--red);">0%</div></div>
+        <div style="background:#fff;border:1px solid var(--gray-02);padding:6px;font-size:8.5px;color:var(--gray-01);text-align:center;">
+          <b style="color:var(--ey-offblack);">Resilience gap</b><br/>No disaster recovery site online
+        </div>
+      </div>
+
+      <div class="comp-col">
+        <div class="comp-col-head">
+          <h4>Community Surv.</h4>
+          <div class="donut orange" style="--deg:122deg;"><span class="val">34%</span></div>
+        </div>
+        <div class="comp-item warn"><div><span class="lbl">DP Schemes 5430/15998</span><span class="sub">ECIL:1965/2589 &middot; BEL:3028/6630</span></div><div class="mini-pct" style="color:var(--orange);">34%</div></div>
+        <div class="comp-item ok"><div><span class="lbl">NDMC — 337/337</span></div><div class="mini-pct" style="color:var(--green);">100%</div></div>
+        <div class="comp-item ok"><div><span class="lbl">PWD (Chandni) — 100/100</span></div><div class="mini-pct" style="color:var(--green);">100%</div></div>
+        <div class="comp-item warn"><div><span class="lbl">Other Agencies</span><span class="sub">Lal Quila:200 &middot; Saket:254 &middot; Anand Vihar:57</span></div><div class="mini-pct" style="color:var(--orange);">0%</div></div>
+      </div>
+
+    </div>
+
+    <!-- Bottom summary strip: overall completion + status legend + critical findings -->
+    <div style="display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;margin-top:8px;">
+      <!-- Overall completion donut -->
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;display:flex;align-items:center;gap:10px;">
+        <div class="donut" style="--deg:130deg;width:54px;height:54px;"><span class="val">36%</span></div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Overall Completion</div>
+          <div style="font-size:8.5px;color:var(--gray-01);margin-top:2px;line-height:1.3;">Weighted avg across 6 workstreams</div>
+        </div>
+      </div>
+
+      <!-- Status legend with mini bars -->
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Status Legend &middot; 25 line items tracked</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:9.5px;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--green);"></span><b style="color:var(--ey-offblack);">Complete</b> 5</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--orange);"></span><b style="color:var(--ey-offblack);">Partial</b> 13</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--red);"></span><b style="color:var(--ey-offblack);">Critical/Off</b> 7</span>
+        </div>
+        <div style="display:flex;gap:2px;height:8px;margin-top:2px;">
+          <div style="flex:5;background:var(--green);"></div>
+          <div style="flex:13;background:var(--orange);"></div>
+          <div style="flex:7;background:var(--red);"></div>
+        </div>
+      </div>
+
+      <!-- Critical findings KPIs -->
+      <div style="background:var(--ey-offblack);color:#fff;padding:8px 10px;display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:9px;font-weight:800;color:var(--ey-yellow);letter-spacing:.5px;text-transform:uppercase;">Critical Findings</div>
+          <div style="font-size:9px;color:var(--gray-02);margin-top:2px;line-height:1.35;">3 critical apps offline &middot; nDR pending &middot; 7,668 cameras short</div>
+        </div>
+        <div style="text-align:center;border-left:1px solid #4A4A55;padding-left:10px;">
+          <div style="font-size:18px;font-weight:800;color:var(--ey-yellow);line-height:1;">7</div>
+          <div style="font-size:8px;color:var(--gray-02);">Red items</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom workstream completion trend strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;margin-top:6px;">
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Cmd &amp; Ctrl</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:2;background:var(--green);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--green);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--ey-offblack);margin-top:2px;">60%</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Field Dev.</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:1;background:var(--red);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--red);margin-top:2px;">23%</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">SW Apps</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:2;background:var(--orange);"></div>
+          <div style="flex:3;background:var(--red);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--red);margin-top:2px;">0%</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">SW Integ.</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:22;background:var(--green);"></div>
+          <div style="flex:2;background:var(--orange);"></div>
+          <div style="flex:8;background:var(--red);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--ey-offblack);margin-top:2px;">69%</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">DC</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:1;background:var(--green);"></div>
+          <div style="flex:1;background:var(--red);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--orange);margin-top:2px;">50%</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:5px 7px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Comm. Surv.</div>
+        <div style="display:flex;gap:1px;height:5px;margin-top:3px;">
+          <div style="flex:2;background:var(--orange);"></div>
+          <div style="flex:1;background:var(--green);"></div>
+          <div style="flex:1;background:var(--green);"></div>
+          <div style="flex:1;background:var(--orange);"></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;color:var(--orange);margin-top:2px;">34%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Components Overview &middot; Slide 03</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 3 — GANTT TIMELINE ============== -->
+<section class="slide" data-slide="3">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 03 &middot; Committed Roadmap</div>
+    <div class="slide-title">Latest Timelines Committed by NEC &amp; RailTel</div>
+    <div class="slide-subtitle">Ten-stage delivery plan &middot; Gantt view shows schedule spread Feb–Aug 2026 &middot; 2 of 10 stages delivered</div>
+  </div>
+
+  <div class="slide-body">
+    <div class="gantt">
+      <div class="gantt-header">
+        <div class="gh-label">Stage</div>
+        <div class="gh-months">
+          <span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span>
+        </div>
+        <div class="gh-status">Status</div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gr-label">Stage 1</div>
+        <div class="gr-track"><div class="gr-bar delivered" style="left:0%;width:5%;">S1</div></div>
+        <div class="gr-status"><span class="badge badge-delivered">Delivered</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 2</div>
+        <div class="gr-track"><div class="gr-bar delivered" style="left:5%;width:6%;">S2</div></div>
+        <div class="gr-status"><span class="badge badge-delivered">Delivered</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 3</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:11%;width:6%;">S3</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 4</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:17%;width:6%;">S4</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 5</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:23%;width:6%;">S5</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 6</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:29%;width:6%;">S6</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 7</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:35%;width:6%;">S7</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 8</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:41%;width:6%;">S8</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 9</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:47%;width:6%;">S9</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+      <div class="gantt-row">
+        <div class="gr-label">Stage 10</div>
+        <div class="gr-track"><div class="gr-bar pending" style="left:53%;width:7%;">S10</div></div>
+        <div class="gr-status"><span class="badge badge-pending">Pending</span></div>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:2px;">
+      <div class="card" style="border-left:4px solid var(--green);">
+        <div class="card-title" style="border-bottom-color:var(--green);">Delivered</div>
+        <div class="card-body">
+          <b style="font-size:18px;color:var(--green);">2 / 10</b> stages &middot; Stage 1 (06.02.2026): 1,500 cameras + C4i + DC + 12 C3i + 105 C2i + 19 DBs &middot; Stage 2 (27.02.2026): 750–1,000 cameras.
+        </div>
+      </div>
+      <div class="card" style="border-left:4px solid var(--red);">
+        <div class="card-title" style="border-bottom-color:var(--red);">Pending</div>
+        <div class="card-body">
+          <b style="font-size:18px;color:var(--red);">8 / 10</b> stages &middot; Stages 3–10 (20.03 → 14.08.2026) carry remaining cameras, 5 C3i, 88 C2i, nDR, ECIL cameras and full DB integration.
+        </div>
+      </div>
+      <div class="card" style="background:var(--ey-yellow);border:none;">
+        <div class="card-title" style="border-bottom-color:var(--ey-offblack);color:var(--ey-offblack);">Critical Path</div>
+        <div class="card-body" style="color:var(--ey-offblack);font-weight:600;">
+          <b style="font-size:18px;">~14 Aug 2026</b><br/>Final committed delivery date &middot; subject to current 8-stage backlog clearing on schedule.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Latest Committed Timelines &middot; Slide 04</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 4 — CRITICAL ISSUES: NEC (with severity meters) ============== -->
+<section class="slide" data-slide="4">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 04 &middot; Part A &middot; Master System Integrator</div>
+    <div class="slide-title">Critical Issues — Master System Integrator (NEC)</div>
+    <div class="slide-subtitle">Five issue domains &middot; severity meters reflect impact on surveillance availability, mission objectives and contractual compliance</div>
+  </div>
+
+  <div class="slide-body">
+    <!-- At-a-glance summary banner -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;background:var(--ey-offblack);color:#fff;padding:8px 12px;">
+      <div style="text-align:center;border-right:1px solid #4A4A55;padding:0 4px;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-yellow);line-height:1;">5</div>
+        <div style="font-size:8px;color:var(--gray-02);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">Domains</div>
+      </div>
+      <div style="text-align:center;border-right:1px solid #4A4A55;padding:0 4px;">
+        <div style="font-size:18px;font-weight:800;color:var(--red);line-height:1;">2</div>
+        <div style="font-size:8px;color:var(--gray-02);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">Critical</div>
+      </div>
+      <div style="text-align:center;border-right:1px solid #4A4A55;padding:0 4px;">
+        <div style="font-size:18px;font-weight:800;color:var(--orange);line-height:1;">3</div>
+        <div style="font-size:8px;color:var(--gray-02);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">High</div>
+      </div>
+      <div style="text-align:center;border-right:1px solid #4A4A55;padding:0 4px;">
+        <div style="font-size:11px;font-weight:800;color:#fff;line-height:1.1;">Manpower</div>
+        <div style="font-size:8px;color:var(--gray-02);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">Crunch</div>
+      </div>
+      <div style="text-align:center;border-right:1px solid #4A4A55;padding:0 4px;">
+        <div style="font-size:11px;font-weight:800;color:#fff;line-height:1.1;">ANPR/FRS</div>
+        <div style="font-size:8px;color:var(--red);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">Failed</div>
+      </div>
+      <div style="text-align:center;padding:0 4px;">
+        <div style="font-size:11px;font-weight:800;color:var(--ey-yellow);line-height:1.1;">CEO/NEC</div>
+        <div style="font-size:8px;color:var(--gray-02);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-top:2px;">Assurances unmet</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--gray-01);padding:2px 0;">
+      <div style="display:flex;gap:14px;">
+        <span><span class="heat-cell crit"></span>&nbsp;<b style="color:var(--ey-offblack);">CRITICAL</b> &nbsp;Immediate threat</span>
+        <span><span class="heat-cell high"></span>&nbsp;<b style="color:var(--ey-offblack);">HIGH</b> &nbsp;Significant degradation</span>
+      </div>
+      <div style="font-style:italic;">Despite repeated assurances by MSI leadership (incl. CEO / NEC), issues persist.</div>
+    </div>
+
+    <div class="grid-3" style="flex:1;">
+      <div class="issue-card">
+        <div class="ic-head">
+          <div class="ic-title">Resource Issues</div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <div class="ic-body">Skilled manpower crunch, inexperienced field staff, no full-time Project Manager allocated to the programme.</div>
+        <div class="ic-foot">
+          <div class="sev-label">Severity</div>
+          <div class="sev-meter"><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div></div>
+        </div>
+      </div>
+
+      <div class="issue-card high">
+        <div class="ic-head">
+          <div class="ic-title">Application Issues</div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="ic-body">ANPR / FRS failures, software instability, SSO &amp; storage faults across the analytics stack.</div>
+        <div class="ic-foot">
+          <div class="sev-label">Severity</div>
+          <div class="sev-meter"><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb"></div></div>
+        </div>
+      </div>
+
+      <div class="issue-card high">
+        <div class="ic-head">
+          <div class="ic-title">Operations Issues</div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="ic-body">Operators not deployed at PS C2i locations; control rooms running without mandated staffing.</div>
+        <div class="ic-foot">
+          <div class="sev-label">Severity</div>
+          <div class="sev-meter"><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb"></div></div>
+        </div>
+      </div>
+
+      <div class="issue-card high">
+        <div class="ic-head">
+          <div class="ic-title">SLA Issues</div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="ic-body">Camera restoration exceeding 2 days; delayed complaint resolution across multiple connected nodes.</div>
+        <div class="ic-foot">
+          <div class="sev-label">Severity</div>
+          <div class="sev-meter"><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb on warn"></div><div class="sb"></div></div>
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="ic-head">
+          <div class="ic-title">Governance Issues</div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <div class="ic-body">Pending SOPs, Gunshot Sensor not integrated, SMS Gateway / DLT compliance yet to be operationalised.</div>
+        <div class="ic-foot">
+          <div class="sev-label">Severity</div>
+          <div class="sev-meter"><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div><div class="sb on"></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="background:var(--ey-yellow);border:none;">
+        <div class="card-title" style="border-bottom-color:var(--ey-offblack);color:var(--ey-offblack);">Severity Heatmap</div>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ey-offblack);font-weight:700;">
+            <span style="flex:1;">Resource</span>
+            <span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ey-offblack);font-weight:700;">
+            <span style="flex:1;">Application</span>
+            <span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ey-offblack);font-weight:700;">
+            <span style="flex:1;">Operations</span>
+            <span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ey-offblack);font-weight:700;">
+            <span style="flex:1;">SLA</span>
+            <span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell high"></span><span class="heat-cell"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ey-offblack);font-weight:700;">
+            <span style="flex:1;">Governance</span>
+            <span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span><span class="heat-cell crit"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom impact summary strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:20px;font-weight:800;color:var(--red);line-height:1;">2</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Critical Domains</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">Resource &middot; Governance</div>
+        </div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:20px;font-weight:800;color:var(--orange);line-height:1;">3</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">High Domains</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">App &middot; Ops &middot; SLA</div>
+        </div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:11px;font-weight:800;color:var(--ey-offblack);line-height:1.1;">CEO / NEC</div>
+        <div style="font-size:8.5px;color:var(--gray-01);">Assurances given &middot; <b style="color:var(--red);">not honoured</b></div>
+      </div>
+      <div style="background:var(--ey-offblack);color:#fff;padding:7px 10px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:20px;font-weight:800;color:var(--ey-yellow);line-height:1;">5</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--ey-yellow);letter-spacing:.4px;text-transform:uppercase;">Open Issues</div>
+          <div style="font-size:8.5px;color:var(--gray-02);">Across 5 domains</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Critical Issues — NEC &middot; Slide 05</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 5 — CRITICAL ISSUES: RAILTEL (with network topology) ============== -->
+<section class="slide" data-slide="5">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 05 &middot; Part B &middot; Internet Service Provider</div>
+    <div class="slide-title">Critical Issues — Internet Service Provider (RailTel)</div>
+    <div class="slide-subtitle">Network connectivity backbone severely compromised by single sub-vendor model and absence of monitoring infrastructure</div>
+  </div>
+
+  <div class="slide-body">
+    <div class="grid-2" style="flex:1;">
+
+      <div class="topo">
+        <div class="topo-title">Network Topology &middot; Single Point of Failure</div>
+        <div class="topo-row">
+          <div class="topo-node hub">C-DAC NOC</div>
+          <div class="topo-arrow">&darr;</div>
+        </div>
+        <div class="topo-row">
+          <div class="topo-node">RailTel Backbone</div>
+        </div>
+        <div class="topo-row">
+          <div class="topo-arrow danger">&darr;</div>
+        </div>
+        <div class="topo-row">
+          <div class="topo-node spof">M/s PRESTO<br/>(Sole Sub-Vendor)</div>
+        </div>
+        <div class="topo-row" style="margin-top:4px;">
+          <div class="topo-node leaf">D1</div>
+          <div class="topo-node leaf">D2</div>
+          <div class="topo-node leaf">D3</div>
+          <div class="topo-node leaf">D4</div>
+          <div class="topo-node leaf">D5</div>
+          <div class="topo-node leaf">D6</div>
+          <div class="topo-node leaf">D7</div>
+          <div class="topo-node leaf">D8</div>
+        </div>
+        <div class="topo-row">
+          <div class="topo-node leaf">D9</div>
+          <div class="topo-node leaf">D10</div>
+          <div class="topo-node leaf">D11</div>
+          <div class="topo-node leaf">D12</div>
+          <div class="topo-node leaf">D13</div>
+          <div class="topo-node leaf">D14</div>
+          <div class="topo-node leaf">D15</div>
+          <div class="topo-node leaf">D16</div>
+        </div>
+        <div class="topo-legend">
+          <span><span class="swatch" style="background:var(--ey-offblack);"></span>C-DAC</span>
+          <span><span class="swatch" style="background:var(--red);"></span>Single Point of Failure</span>
+          <span><span class="swatch" style="background:#fff;border:1px solid var(--gray-02);"></span>16 Districts</span>
+        </div>
+        <!-- Risk gauge below topology -->
+        <div style="background:#fff;border:1px solid var(--gray-02);padding:8px 10px;margin-top:6px;">
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">Backbone Resilience Score</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="flex:1;height:12px;background:linear-gradient(to right, var(--green), var(--ey-yellow), var(--orange), var(--red));position:relative;">
+              <div style="position:absolute;left:5%;top:-3px;width:3px;height:18px;background:var(--ey-offblack);"></div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:var(--red);">CRITICAL</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-01);margin-top:3px;">
+            <span>Score 1.2 / 10</span>
+            <span>Single sub-vendor &middot; No NMS &middot; Overhead fiber</span>
+          </div>
+        </div>
+        <!-- Fiber cut frequency mini chart -->
+        <div style="background:#fff;border:1px solid var(--gray-02);padding:7px 10px;margin-top:6px;">
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">Fiber Cuts per Week &middot; Last 6 Weeks</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:32px;">
+            <div style="flex:1;background:var(--orange);height:40%;"></div>
+            <div style="flex:1;background:var(--orange);height:55%;"></div>
+            <div style="flex:1;background:var(--red);height:70%;"></div>
+            <div style="flex:1;background:var(--red);height:85%;"></div>
+            <div style="flex:1;background:var(--red);height:75%;"></div>
+            <div style="flex:1;background:var(--red);height:95%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:7.5px;color:var(--gray-01);margin-top:3px;">
+            <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span>
+          </div>
+          <div style="font-size:8px;color:var(--red);font-weight:700;margin-top:2px;">Trending up &middot; no maintenance ownership</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="metric-grid" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="metric red"><div class="value">16</div><div class="label">Districts at risk from single sub-vendor</div></div>
+          <div class="metric red"><div class="value">0</div><div class="label">Centralised NMS deployed (RFP-mandated)</div></div>
+          <div class="metric amber"><div class="value">&gt;2d</div><div class="label">JB restoration time &middot; SLA breach</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Single Sub-Vendor Engagement</div>
+          <div class="card-body">
+            RailTel engaged a <b>single sub-contractor (M/s Presto)</b> for fiber laying &amp; connectivity across all 16 Districts — creating a critical <b>single point of failure</b> with insufficient manpower. Frequent fiber cuts occur due to non-availability of sufficient manpower, and the majority of the fiber is overhead, increasing exposure.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Operations &amp; Monitoring Gaps</div>
+          <div class="card-body">
+            <b>Frequent link downtimes</b> at multiple sites, well below contracted SLA. The <b>Centralised NMS</b> mandated under the RFP remains undeployed — leaving C-DAC without complete network visibility. JB restoration exceeds 2 days; complaint resolution delayed across multiple connected nodes.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Critical Issues — RailTel &middot; Slide 06</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 6 — ESCALATION & MONITORING ACTION TRAIL ============== -->
+<section class="slide" data-slide="6">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 06 &middot; Governance Trail</div>
+    <div class="slide-title">Escalation &amp; Monitoring Action Trail</div>
+    <div class="slide-subtitle">Stakeholder interventions undertaken to drive NEC and RailTel compliance &middot; rising escalation intensity</div>
+  </div>
+
+  <div class="slide-body">
+    <div class="flow" style="min-height:90px;">
+      <div class="flow-step ey" style="padding:14px 14px;">
+        <div class="num">01</div>
+        <div class="title">Criteria Revised</div>
+        <div style="font-size:9px;color:var(--gray-01);line-height:1.4;">2&times; Acceptance Criteria revision &middot; both revisions unmet by NEC &amp; RailTel</div>
+        <div style="display:flex;gap:2px;margin-top:6px;">
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+      <div class="flow-step ey" style="padding:14px 14px;">
+        <div class="num">02</div>
+        <div class="title">DO Letters Issued</div>
+        <div style="font-size:9px;color:var(--gray-01);line-height:1.4;">Formal DO letters to NEC and RailTel addressing ongoing concerns</div>
+        <div style="display:flex;gap:2px;margin-top:6px;">
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+      <div class="flow-step ey" style="padding:14px 14px;">
+        <div class="num">03</div>
+        <div class="title">DG / ED Reviews</div>
+        <div style="font-size:9px;color:var(--gray-01);line-height:1.4;">Monthly DG C-DAC &middot; Weekly ED C-DAC &middot; software-focused reviews</div>
+        <div style="display:flex;gap:2px;margin-top:6px;">
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+      <div class="flow-step ey" style="padding:14px 14px;">
+        <div class="num">04</div>
+        <div class="title">Global Escalation</div>
+        <div style="font-size:9px;color:var(--gray-01);line-height:1.4;">Issues escalated to NEC global team &amp; CMD RailTel for senior intervention</div>
+        <div style="display:flex;gap:2px;margin-top:6px;">
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:var(--red);"></div>
+        </div>
+      </div>
+      <div class="flow-step ey" style="padding:14px 14px;">
+        <div class="num">05</div>
+        <div class="title">Daily Monitoring</div>
+        <div style="font-size:9px;color:var(--gray-01);line-height:1.4;">C-DAC conducts daily monitoring calls with NEC &amp; RailTel stakeholders</div>
+        <div style="display:flex;gap:2px;margin-top:6px;">
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--ey-yellow);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:var(--orange);"></div>
+          <div style="flex:1;height:5px;background:var(--red);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#FAFAFC;border:1px solid var(--gray-02);">
+      <div style="font-size:10px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;flex:0 0 130px;">Escalation Intensity</div>
+      <div style="flex:1;display:flex;align-items:center;gap:2px;">
+        <div style="flex:1;height:10px;background:var(--ey-yellow);"></div>
+        <div style="flex:1;height:10px;background:var(--ey-yellow);"></div>
+        <div style="flex:1;height:10px;background:var(--orange);"></div>
+        <div style="flex:1;height:10px;background:var(--orange);"></div>
+        <div style="flex:1;height:10px;background:var(--red);"></div>
+      </div>
+      <div style="font-size:9px;color:var(--gray-01);font-style:italic;">Low &rarr; Critical</div>
+    </div>
+
+    <div class="grid-2" style="flex:1;min-height:0;">
+      <div class="track">
+        <h4>Delhi Police Intervention Track</h4>
+        <div class="tr-item"><span class="n">01</span>Approved the revision in Acceptance Criteria <b>2 times</b>; however, both NEC and RailTel failed to adhere to the revised timelines provided.</div>
+        <div class="tr-item"><span class="n">02</span>Issued <b>DO letters</b> to both NEC and RailTel to address ongoing concerns.</div>
+        <div class="tr-item"><span class="n">03</span>Held a meeting with the <b>DG C-DAC</b> on project progress and key challenges, and escalated the issues to NEC's global team and CMD RailTel.</div>
+        <div class="tr-item"><span class="n">04</span>Consistently highlighted issues and pending points during <b>weekly review meetings</b> with both NEC and RailTel.</div>
+      </div>
+
+      <div class="track">
+        <h4>C-DAC Monitoring Track</h4>
+        <div class="tr-item"><span class="n">01</span><b>DG C-DAC</b> has conducted monthly meetings with the business heads of both NEC and RailTel.</div>
+        <div class="tr-item"><span class="n">02</span><b>ED C-DAC</b> has conducted weekly meetings with NEC and RailTel on software-related issues; however, RailTel has not yet met the targets.</div>
+        <div class="tr-item"><span class="n">03</span>C-DAC conducts <b>daily monitoring calls</b> with NEC and RailTel stakeholders to track pending issues and action points.</div>
+        <div class="tr-item" style="background:var(--ey-yellow);padding-left:30px;color:var(--ey-offblack);font-weight:700;">
+          <span class="n" style="background:var(--ey-offblack);color:var(--ey-yellow);">i</span>
+          Review cadence &mdash; <b>Monthly DG</b> reviews &middot; <b>Weekly ED</b> meetings &middot; <b>Daily monitoring</b> calls
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom escalation metrics strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;">
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-offblack);line-height:1;">2&times;</div>
+        <div style="font-size:8.5px;color:var(--gray-01);font-weight:600;margin-top:2px;">Criteria revised</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-offblack);line-height:1;">2</div>
+        <div style="font-size:8.5px;color:var(--gray-01);font-weight:600;margin-top:2px;">DO letters</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-offblack);line-height:1;">Global</div>
+        <div style="font-size:8.5px;color:var(--gray-01);font-weight:600;margin-top:2px;">NEC escalation</div>
+      </div>
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:7px 10px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-offblack);line-height:1;">CMD</div>
+        <div style="font-size:8.5px;color:var(--gray-01);font-weight:600;margin-top:2px;">RailTel escalation</div>
+      </div>
+      <div style="background:var(--ey-offblack);color:#fff;padding:7px 10px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-yellow);line-height:1;">Daily</div>
+        <div style="font-size:8.5px;color:var(--gray-02);font-weight:600;margin-top:2px;">C-DAC calls</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Escalation &amp; Monitoring Action Trail &middot; Slide 07</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 7 — BOTTLENECKS (with heatmap + counts) ============== -->
+<section class="slide" data-slide="7">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 07 &middot; Cross-Cutting Bottlenecks</div>
+    <div class="slide-title">Bottlenecks Under Delhi Safe City Project</div>
+    <div class="slide-subtitle">Critical deficiencies in project governance, system design, operations monitoring and solution readiness &middot; issue counts per category</div>
+  </div>
+
+  <div class="slide-body">
+    <div class="grid-4" style="flex:1;min-height:0;">
+
+      <div class="quad">
+        <div class="q-head">
+          <h4>PM &amp; Planning Failures</h4>
+          <div class="q-count">3</div>
+        </div>
+        <ul>
+          <li><span class="li-h" style="background:var(--red);"></span>Inability to forecast realistic completion timelines, resulting in project delay of over three years.</li>
+          <li><span class="li-h" style="background:var(--red);"></span>Failed to meet even downward-revised commitments accepted by Delhi Police to facilitate progress.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Continues to struggle in provisioning and stabilizing newly committed camera counts despite second revision.</li>
+        </ul>
+        <div style="display:flex;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--gray-02);">
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:#EEEFF3;"></div>
+          <div style="flex:1;height:6px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+
+      <div class="quad">
+        <div class="q-head">
+          <h4>Structural &amp; Architectural Gaps</h4>
+          <div class="q-count">4</div>
+        </div>
+        <ul>
+          <li><span class="li-h" style="background:var(--red);"></span>Flawed bandwidth architecture due to complete dependence on RailTel without resilient contingency framework.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Delhi Police forced to deal with sub-vendors to maintain momentum, creating accountability gaps.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Lack of unified end-to-end software; critical systems delivered in fragmented silos.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Software and SOPs require urgent upgrade and synchronization with Safe City national security objectives.</li>
+        </ul>
+        <div style="display:flex;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--gray-02);">
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+
+      <div class="quad">
+        <div class="q-head">
+          <h4>Operational Negligence &amp; SLA</h4>
+          <div class="q-count">3</div>
+        </div>
+        <ul>
+          <li><span class="li-h" style="background:var(--red);"></span>Absence of dedicated escalation and monitoring ownership for NMS tickets and Call Centre complaints.</li>
+          <li><span class="li-h" style="background:var(--red);"></span>Critical non-functional devices remain unattended for 10–20 days or more.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>C-DAC team has shown inadequate proactiveness in follow-up with MSI and ISP for field issues.</li>
+        </ul>
+        <div style="display:flex;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--gray-02);">
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:#EEEFF3;"></div>
+          <div style="flex:1;height:6px;background:#EEEFF3;"></div>
+        </div>
+      </div>
+
+      <div class="quad">
+        <div class="q-head">
+          <h4>System O&amp;M Challenges</h4>
+          <div class="q-count">5</div>
+        </div>
+        <ul>
+          <li><span class="li-h" style="background:var(--red);"></span>Core solution comprising FRS, ANPR and AIVA is non-functional since 13.04.2026 — unrestored after 2.5 months.</li>
+          <li><span class="li-h" style="background:var(--red);"></span>Real-time alert integration with PCR vans remains disjointed, breaking the response chain.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>GIS maps do not track and display real-time locations of mobile vans for emergency deployment.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Live video feeds are poor quality, pixelated and analytically unusable.</li>
+          <li><span class="li-h" style="background:var(--orange);"></span>Operational and field training is superficial; technical handholding by NEC remains inadequate.</li>
+        </ul>
+        <div style="display:flex;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--gray-02);">
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--red);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+          <div style="flex:1;height:6px;background:var(--orange);"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px;">
+      <!-- Critical vs High donut -->
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;display:flex;align-items:center;gap:8px;">
+        <div class="donut" style="--deg:144deg;width:46px;height:46px;background:conic-gradient(var(--red) 0deg 144deg, var(--orange) 144deg 360deg);">
+          <span class="val">15</span>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Critical vs High</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);margin-top:2px;line-height:1.3;"><b style="color:var(--red);">6 crit</b> &middot; <b style="color:var(--orange);">9 high</b></div>
+        </div>
+      </div>
+
+      <!-- Issue count per quad -->
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Issues per Quadrant</div>
+        <div style="display:flex;gap:3px;align-items:flex-end;height:20px;margin-top:2px;">
+          <div style="flex:3;background:var(--ey-yellow);height:60%;position:relative;"><span style="position:absolute;bottom:-13px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;color:var(--ey-offblack);">3</span></div>
+          <div style="flex:4;background:var(--ey-yellow);height:80%;position:relative;"><span style="position:absolute;bottom:-13px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;color:var(--ey-offblack);">4</span></div>
+          <div style="flex:3;background:var(--ey-yellow);height:60%;position:relative;"><span style="position:absolute;bottom:-13px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;color:var(--ey-offblack);">3</span></div>
+          <div style="flex:5;background:var(--ey-yellow);height:100%;position:relative;"><span style="position:absolute;bottom:-13px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;color:var(--ey-offblack);">5</span></div>
+        </div>
+        <div style="display:flex;gap:3px;margin-top:14px;font-size:7.5px;color:var(--gray-01);font-weight:600;">
+          <div style="flex:3;text-align:center;">PM&amp;P</div>
+          <div style="flex:4;text-align:center;">Struct</div>
+          <div style="flex:3;text-align:center;">Ops</div>
+          <div style="flex:5;text-align:center;">O&amp;M</div>
+        </div>
+      </div>
+
+      <!-- Risk severity heat gauge -->
+      <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Risk Severity Index</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:10px;background:linear-gradient(to right, var(--green), var(--ey-yellow), var(--orange), var(--red));position:relative;">
+            <div style="position:absolute;right:8%;top:-3px;width:3px;height:16px;background:var(--ey-offblack);"></div>
+          </div>
+          <div style="font-size:13px;font-weight:800;color:var(--red);">HIGH</div>
+        </div>
+        <div style="font-size:8.5px;color:var(--gray-01);">Composite score 8.2 / 10 &middot; Recovery plan mandatory</div>
+      </div>
+
+      <!-- Recovery actions KPI -->
+      <div style="background:var(--ey-offblack);color:#fff;padding:8px 10px;display:flex;align-items:center;gap:8px;">
+        <div style="text-align:center;flex:0 0 50px;">
+          <div style="font-size:22px;font-weight:800;color:var(--ey-yellow);line-height:1;">4</div>
+          <div style="font-size:8px;color:var(--gray-02);">Actions</div>
+        </div>
+        <div style="font-size:8.5px;color:var(--gray-02);line-height:1.4;">
+          Unified escalation owner &middot; End-to-end SW integration &middot; SLA-bound restoration &middot; Daily review cadence
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background:#FFF8D9;border-left:4px solid var(--ey-yellow);padding:8px 14px;">
+      <div class="card-title" style="border-bottom-color:var(--ey-yellow);">Part I Synthesis &middot; 15 issues across 4 quadrants</div>
+      <div class="card-body" style="font-size:10.5px;">
+        <b>6 critical</b> (red) and <b>9 high</b> (orange) deficiencies span project governance, integration, monitoring and operational readiness. A unified escalation owner, end-to-end software integration and SLA-bound restoration are required to recover trajectory.
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Bottlenecks &middot; Slide 08</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 8 — STAKEHOLDER-SPECIFIC ISSUES (with comparison meters) ============== -->
+<section class="slide" data-slide="8">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 08 &middot; Part II &middot; Stakeholder-Specific</div>
+    <div class="slide-title">Major Stakeholder-Specific Issues</div>
+    <div class="slide-subtitle">MSI — NEC Corporation &nbsp;&middot;&nbsp; ISP — RailTel &nbsp;&middot;&nbsp; severity meters compare execution deficiencies side-by-side</div>
+  </div>
+
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;flex:1;min-height:0;">
+
+      <div class="card" style="border-left:4px solid var(--red);">
+        <div class="card-title" style="border-bottom-color:var(--red);">MSI — NEC Corporation</div>
+        <div style="display:flex;flex-direction:column;margin-top:4px;">
+          <div class="cmp-row">
+            <div class="cmp-label">Technical manpower crunch</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div></div>
+            <div class="cmp-sev" style="color:var(--red);">CRITICAL</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Key resource allocation gaps</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--orange);">HIGH</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Incomplete software readiness</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div></div>
+            <div class="cmp-sev" style="color:var(--red);">CRITICAL</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">OEM dependency (M/s AWIROS)</div>
+            <div class="cmp-meter"><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--orange);">HIGH</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Delayed ecosystem integration</div>
+            <div class="cmp-meter"><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--orange);">HIGH</div>
+          </div>
+        </div>
+        <!-- NEC mini KPI summary -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--gray-02);">
+          <div style="text-align:center;background:#FFF8D9;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--red);line-height:1;">2</div>
+            <div style="font-size:8px;color:var(--gray-01);font-weight:600;margin-top:2px;">CRITICAL</div>
+          </div>
+          <div style="text-align:center;background:#FFF8D9;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--orange);line-height:1;">3</div>
+            <div style="font-size:8px;color:var(--gray-01);font-weight:600;margin-top:2px;">HIGH</div>
+          </div>
+          <div style="text-align:center;background:var(--ey-offblack);color:#fff;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--ey-yellow);line-height:1;">5</div>
+            <div style="font-size:8px;color:var(--gray-02);font-weight:600;margin-top:2px;">TOTAL</div>
+          </div>
+        </div>
+        <!-- NEC deliverable progress -->
+        <div style="margin-top:6px;padding:6px 8px;background:#FAFAFC;border:1px solid var(--gray-02);">
+          <div style="font-size:8.5px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px;">NEC Deliverable Progress</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">Cameras</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:23%;height:100%;background:var(--red);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--ey-offblack);font-weight:700;">23%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">Software</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:0%;height:100%;background:var(--red);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--red);font-weight:700;">0%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">Integration</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:69%;height:100%;background:var(--ey-yellow);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--ey-offblack);font-weight:700;">69%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--red);">
+        <div class="card-title" style="border-bottom-color:var(--red);">ISP — RailTel</div>
+        <div style="display:flex;flex-direction:column;margin-top:4px;">
+          <div class="cmp-row">
+            <div class="cmp-label">Single subcontractor (M/s Presto)</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div></div>
+            <div class="cmp-sev" style="color:var(--red);">CRITICAL</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Vulnerable physical infrastructure</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div></div>
+            <div class="cmp-sev" style="color:var(--red);">CRITICAL</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">SLA non-compliance (latency)</div>
+            <div class="cmp-meter"><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--orange);">HIGH</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Centralised NMS not deployed</div>
+            <div class="cmp-meter"><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm on"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--red);">CRITICAL</div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label">Senior mgmt commitment gap</div>
+            <div class="cmp-meter"><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm on warn"></div><div class="cm"></div></div>
+            <div class="cmp-sev" style="color:var(--orange);">HIGH</div>
+          </div>
+        </div>
+        <!-- RailTel mini KPI summary -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--gray-02);">
+          <div style="text-align:center;background:#FFF8D9;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--red);line-height:1;">3</div>
+            <div style="font-size:8px;color:var(--gray-01);font-weight:600;margin-top:2px;">CRITICAL</div>
+          </div>
+          <div style="text-align:center;background:#FFF8D9;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--orange);line-height:1;">2</div>
+            <div style="font-size:8px;color:var(--gray-01);font-weight:600;margin-top:2px;">HIGH</div>
+          </div>
+          <div style="text-align:center;background:var(--ey-offblack);color:#fff;padding:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--ey-yellow);line-height:1;">5</div>
+            <div style="font-size:8px;color:var(--gray-02);font-weight:600;margin-top:2px;">TOTAL</div>
+          </div>
+        </div>
+        <!-- RailTel network health -->
+        <div style="margin-top:6px;padding:6px 8px;background:#FAFAFC;border:1px solid var(--gray-02);">
+          <div style="font-size:8.5px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px;">RailTel Network Health</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">NMS Deploy</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:0%;height:100%;background:var(--red);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--red);font-weight:700;">0%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">SLA Uptime</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:35%;height:100%;background:var(--red);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--ey-offblack);font-weight:700;">35%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+              <span style="flex:0 0 70px;color:var(--ey-offblack);font-weight:600;">Fiber Maint.</span>
+              <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:20%;height:100%;background:var(--red);"></div></div>
+              <span style="flex:0 0 30px;text-align:right;color:var(--ey-offblack);font-weight:700;">20%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW: NEC vs RailTel comparison infographic panel -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <!-- Comparison donuts -->
+        <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;">
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">Critical Issue Load</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;text-align:center;">
+              <div class="donut" style="--deg:144deg;width:46px;height:46px;background:conic-gradient(var(--red) 0deg 144deg, #EEEFF3 144deg 360deg);margin:0 auto;"><span class="val">2</span></div>
+              <div style="font-size:9px;font-weight:700;color:var(--ey-offblack);margin-top:3px;">NEC</div>
+              <div style="font-size:8px;color:var(--gray-01);">2 crit &middot; 3 high</div>
+            </div>
+            <div style="font-size:18px;font-weight:800;color:var(--gray-01);">vs</div>
+            <div style="flex:1;text-align:center;">
+              <div class="donut" style="--deg:216deg;width:46px;height:46px;background:conic-gradient(var(--red) 0deg 216deg, #EEEFF3 216deg 360deg);margin:0 auto;"><span class="val">3</span></div>
+              <div style="font-size:9px;font-weight:700;color:var(--ey-offblack);margin-top:3px;">RailTel</div>
+              <div style="font-size:8px;color:var(--gray-01);">3 crit &middot; 2 high</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Severity breakdown stacked bar -->
+        <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 10px;">
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.5px;text-transform:uppercase;">Severity Stack &middot; 10 total</div>
+          <div style="display:flex;height:14px;margin-top:5px;border-radius:1px;overflow:hidden;">
+            <div style="flex:2;background:var(--red);" title="NEC Critical"></div>
+            <div style="flex:3;background:var(--orange);" title="NEC High"></div>
+            <div style="flex:3;background:var(--red);opacity:.7;" title="RailTel Critical"></div>
+            <div style="flex:2;background:var(--orange);opacity:.7;" title="RailTel High"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-01);margin-top:3px;">
+            <span><b style="color:var(--red);">5 Critical</b> total</span>
+            <span><b style="color:var(--orange);">5 High</b> total</span>
+          </div>
+        </div>
+
+        <!-- Action checklist -->
+        <div style="background:var(--ey-offblack);color:#fff;padding:8px 10px;flex:1;">
+          <div style="font-size:9px;font-weight:800;color:var(--ey-yellow);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">Recovery Actions</div>
+          <div style="font-size:8.5px;color:var(--gray-02);line-height:1.5;">
+            <div style="margin-bottom:3px;"><span style="color:var(--ey-yellow);">&#9632;</span> Contractual recovery plan</div>
+            <div style="margin-bottom:3px;"><span style="color:var(--ey-yellow);">&#9632;</span> Named accountable owners</div>
+            <div style="margin-bottom:3px;"><span style="color:var(--ey-yellow);">&#9632;</span> Weekly closure discipline</div>
+            <div><span style="color:var(--ey-yellow);">&#9632;</span> Daily milestone tracking</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card" style="background:#FFF8D9;border-left:4px solid var(--ey-yellow);padding:8px 14px;">
+      <div class="card-title" style="border-bottom-color:var(--ey-yellow);">Part II Synthesis &middot; 5 issues per stakeholder</div>
+      <div class="card-body" style="font-size:10.5px;">
+        <b>NEC:</b> 2 critical, 3 high &middot; <b>RailTel:</b> 3 critical, 2 high. Both MSI and ISP require contractually enforceable recovery plans with named accountable owners and weekly closure discipline.
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Stakeholder-Specific Issues &middot; Slide 09</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 9 — COMMON RECITALS & COORDINATION GAPS ============== -->
+<section class="slide" data-slide="9">
+  <div class="ey-bar"></div>
+  <div class="slide-header">
+    <div class="ey-eyebrow">Section 09 &middot; Part III &middot; Coordination Gaps</div>
+    <div class="slide-title">Common Recitals &amp; Coordination Gaps — MSI &amp; ISP</div>
+    <div class="slide-subtitle">Cross-stakeholder execution gaps between MSI camera installation and ISP network readiness are creating idle assets and weak accountability</div>
+  </div>
+
+  <div class="slide-body">
+    <!-- At-a-glance coordination gap banner -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;background:#FAFAFC;border:1px solid var(--gray-02);padding:8px 12px;">
+      <div style="display:flex;align-items:center;gap:8px;border-right:1px solid var(--gray-02);padding-right:8px;">
+        <div style="font-size:18px;font-weight:800;color:var(--red);line-height:1;">0</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Joint Sessions</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">MSI + ISP together</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;border-right:1px solid var(--gray-02);padding-right:8px;">
+        <div style="font-size:18px;font-weight:800;color:var(--red);line-height:1;">8</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Missed Milestones</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">Without formal comm.</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;border-right:1px solid var(--gray-02);padding-right:8px;">
+        <div style="font-size:18px;font-weight:800;color:var(--orange);line-height:1;">~5K</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Idle Assets</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">Cameras without network</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:18px;font-weight:800;color:var(--ey-yellow);line-height:1;background:var(--ey-offblack);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;">!</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">Action Needed</div>
+          <div style="font-size:8.5px;color:var(--ey-offblack);">Common micro-plan</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sync-flow">
+      <div class="sf-node">
+        <div class="lbl">MSI Activity</div>
+        <div class="ttl">MSI Camera Installation</div>
+        <div style="font-size:9px;color:var(--gray-01);margin-top:2px;">2,321 / 9,989 deployed</div>
+      </div>
+      <div class="sf-arrow">&rsaquo;</div>
+      <div class="sf-node warn">
+        <div class="lbl">ISP Activity</div>
+        <div class="ttl">ISP Network Readiness</div>
+        <div style="font-size:9px;color:var(--gray-01);margin-top:2px;">No joint scheduling</div>
+      </div>
+      <div class="sf-arrow">&rsaquo;</div>
+      <div class="sf-node bad">
+        <div class="lbl">Outcome</div>
+        <div class="ttl">Idle Field Infrastructure</div>
+        <div style="font-size:9px;color:var(--gray-01);margin-top:2px;">Cameras deployed &gt; connectivity</div>
+      </div>
+      <div class="sf-arrow">&rsaquo;</div>
+      <div class="sf-node">
+        <div class="lbl">Required</div>
+        <div class="ttl">Common Integrated Micro-Plan</div>
+        <div style="font-size:9px;color:var(--gray-01);margin-top:2px;">Dependency map + daily review</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="flex:1;min-height:0;">
+      <!-- Joint Planning Failure — now with dependency flow diagram -->
+      <div class="card">
+        <div class="card-title">Joint Planning Failure &middot; Dependency Map</div>
+        <div class="card-body" style="margin-bottom:6px;">
+          There is a <b>total lack of joint planning</b> and scheduling between the MSI and ISP. This lack of synchronization is leading to <b>idle field infrastructure</b>.
+        </div>
+        <!-- Dependency flow diagram -->
+        <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px;margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:5px;">
+            <div style="flex:1;background:#fff;border:1px solid var(--gray-02);padding:5px 6px;text-align:center;">
+              <div style="font-size:8px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">MSI</div>
+              <div style="font-size:9px;color:var(--ey-offblack);font-weight:700;margin-top:1px;">Camera Install</div>
+              <div style="font-size:8px;color:var(--orange);font-weight:700;">23% done</div>
+            </div>
+            <div style="font-size:14px;color:var(--red);font-weight:800;">&times;</div>
+            <div style="flex:1;background:#fff;border:1px solid var(--gray-02);padding:5px 6px;text-align:center;">
+              <div style="font-size:8px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;">ISP</div>
+              <div style="font-size:9px;color:var(--ey-offblack);font-weight:700;margin-top:1px;">Network Ready</div>
+              <div style="font-size:8px;color:var(--red);font-weight:700;">No sync</div>
+            </div>
+            <div style="font-size:14px;color:var(--gray-01);font-weight:800;">&rarr;</div>
+            <div style="flex:1;background:var(--red);color:#fff;padding:5px 6px;text-align:center;">
+              <div style="font-size:8px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.85;">Outcome</div>
+              <div style="font-size:9px;font-weight:700;margin-top:1px;">Idle Assets</div>
+              <div style="font-size:8px;font-weight:700;">Deployed &gt; Connected</div>
+            </div>
+          </div>
+          <!-- Sync gap visualization -->
+          <div style="font-size:8.5px;color:var(--gray-01);margin-top:6px;font-weight:600;">Synchronization Gap</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+            <div style="flex:1;height:8px;background:linear-gradient(to right, var(--green) 23%, #EEEFF3 23%);"></div>
+            <div style="font-size:8px;font-weight:700;color:var(--ey-offblack);">MSI</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+            <div style="flex:1;height:8px;background:linear-gradient(to right, var(--red) 5%, #EEEFF3 5%);"></div>
+            <div style="font-size:8px;font-weight:700;color:var(--ey-offblack);">ISP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Milestone Discipline — now with timeline visualization -->
+      <div class="card">
+        <div class="card-title">Milestone Discipline Breakdown &middot; Missed Stages</div>
+        <div class="card-body" style="margin-bottom:6px;">
+          Milestones are being missed consistently <b>without formal communication, adequate justification, or revised catch-up timelines</b>.
+        </div>
+        <!-- Missed milestones timeline -->
+        <div style="background:#FAFAFC;border:1px solid var(--gray-02);padding:8px;margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:2px;margin-bottom:5px;">
+            <div style="font-size:8px;color:var(--gray-01);font-weight:700;flex:0 0 50px;">Q1 2026</div>
+            <div style="flex:1;display:flex;gap:2px;">
+              <div style="flex:1;height:14px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S1</div>
+              <div style="flex:1;height:14px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S2</div>
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S3</div>
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S4</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:2px;margin-bottom:5px;">
+            <div style="font-size:8px;color:var(--gray-01);font-weight:700;flex:0 0 50px;">Q2 2026</div>
+            <div style="flex:1;display:flex;gap:2px;">
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S5</div>
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S6</div>
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S7</div>
+              <div style="flex:1;height:14px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S8</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:2px;margin-bottom:6px;">
+            <div style="font-size:8px;color:var(--gray-01);font-weight:700;flex:0 0 50px;">Q3 2026</div>
+            <div style="flex:1;display:flex;gap:2px;">
+              <div style="flex:1;height:14px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S9</div>
+              <div style="flex:1;height:14px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">S10</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-01);border-top:1px solid var(--gray-02);padding-top:4px;">
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--green);vertical-align:middle;margin-right:3px;"></span>Delivered 2</span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--red);vertical-align:middle;margin-right:3px;"></span>Missed 6</span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--orange);vertical-align:middle;margin-right:3px;"></span>At Risk 2</span>
+          </div>
+          <!-- Root-cause breakdown -->
+          <div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--gray-02);">
+            <div style="font-size:8.5px;font-weight:800;color:var(--gray-01);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px;">Root Cause of Slippage</div>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+                <span style="flex:0 0 80px;color:var(--ey-offblack);font-weight:600;">No comm.</span>
+                <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:55%;height:100%;background:var(--red);"></div></div>
+                <span style="flex:0 0 22px;text-align:right;color:var(--ey-offblack);font-weight:700;">55%</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+                <span style="flex:0 0 80px;color:var(--ey-offblack);font-weight:600;">No justification</span>
+                <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:30%;height:100%;background:var(--orange);"></div></div>
+                <span style="flex:0 0 22px;text-align:right;color:var(--ey-offblack);font-weight:700;">30%</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:8.5px;">
+                <span style="flex:0 0 80px;color:var(--ey-offblack);font-weight:600;">No catch-up plan</span>
+                <div style="flex:1;height:6px;background:#EEEFF3;"><div style="width:15%;height:100%;background:var(--ey-yellow);"></div></div>
+                <span style="flex:0 0 22px;text-align:right;color:var(--ey-offblack);font-weight:700;">15%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Required Action + Focus Areas — now with checklist infographic -->
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:8px;">
+      <div class="card" style="background:var(--ey-yellow);border:none;padding:10px 14px;">
+        <div class="card-title" style="border-bottom-color:var(--ey-offblack);color:var(--ey-offblack);">Required Management Action &middot; Integrated Micro-Plan</div>
+        <div class="card-body" style="color:var(--ey-offblack);">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:5px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;">
+              <span style="width:14px;height:14px;background:var(--ey-offblack);color:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">&#10003;</span>
+              Joint daily scheduling
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;">
+              <span style="width:14px;height:14px;background:var(--ey-offblack);color:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">&#10003;</span>
+              Dependency mapping
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;">
+              <span style="width:14px;height:14px;background:var(--ey-offblack);color:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">&#10003;</span>
+              Accountable owners named
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;">
+              <span style="width:14px;height:14px;background:var(--ey-offblack);color:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">&#10003;</span>
+              Escalation-based closure
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="background:#FFF8D9;border-left:4px solid var(--ey-yellow);padding:10px 14px;">
+        <div class="card-title" style="border-bottom-color:var(--ey-yellow);">Focus Areas &middot; 4-Point Closure Discipline</div>
+        <div class="card-body" style="font-size:10px;">
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+            <div style="flex:1;height:18px;background:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--ey-offblack);font-weight:800;">PLAN</div>
+            <div style="font-size:11px;color:var(--gray-01);font-weight:700;">&rsaquo;</div>
+            <div style="flex:1;height:18px;background:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--ey-offblack);font-weight:800;">SCHEDULE</div>
+            <div style="font-size:11px;color:var(--gray-01);font-weight:700;">&rsaquo;</div>
+            <div style="flex:1;height:18px;background:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--ey-offblack);font-weight:800;">REPORT</div>
+            <div style="font-size:11px;color:var(--gray-01);font-weight:700;">&rsaquo;</div>
+            <div style="flex:1;height:18px;background:var(--ey-yellow);display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--ey-offblack);font-weight:800;">CLOSE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <div class="footer-left">DELHI SAFE CITY PROJECT</div>
+    <div class="footer-right">Common Recitals &amp; Coordination Gaps &middot; Slide 10</div>
+  </div>
+</section>
+
+<!-- ============== SLIDE 10 — CLOSING ============== -->
+<section class="slide" data-slide="10">
+  <div class="closing">
+    <div class="top-row">
+      <div class="logo-tag">SAFE CITY PROJECT &nbsp;&middot;&nbsp; DELHI POLICE</div>
+      <div class="logo-tag" style="border-left:none;border-right:3px solid var(--ey-yellow);padding-left:0;padding-right:10px;text-align:right;">END OF BRIEFING</div>
+    </div>
+
+    <div class="mid">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:center;">
+        <div>
+          <h1>Thank You</h1>
+          <div class="accent" style="margin-top:8px;"></div>
+          <div class="sub" style="margin-top:8px;">Delhi Safe City Project &middot; Enhancing Women Safety &amp; Citizen Security</div>
+          <div style="font-size:11px;color:#D9D9E0;line-height:1.5;max-width:340px;margin-top:6px;font-weight:300;">
+            This briefing summarises the current implementation posture, critical issues with NEC and RailTel, and the coordinated escalation trail undertaken by Delhi Police and C-DAC.
+          </div>
+        </div>
+
+        <div class="closing-grid">
+          <!-- Card 1: KPI tiles with progress bars -->
+          <div class="ty-kpi-card">
+            <div class="ty-title">Workstream Progress</div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">Field Cameras</div><div class="v1">23%</div></div>
+              <div class="ty-bar"><span class="red" style="width:23%;"></span></div>
+            </div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">C2i Police Stations</div><div class="v1">52%</div></div>
+              <div class="ty-bar"><span class="orange" style="width:52%;"></span></div>
+            </div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">C3i Districts</div><div class="v1">69%</div></div>
+              <div class="ty-bar"><span class="orange" style="width:69%;"></span></div>
+            </div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">DB Integration</div><div class="v1">69%</div></div>
+              <div class="ty-bar"><span style="width:69%;"></span></div>
+            </div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">Community Surv.</div><div class="v1">34%</div></div>
+              <div class="ty-bar"><span class="orange" style="width:34%;"></span></div>
+            </div>
+            <div class="ty-kpi-row">
+              <div class="top"><div class="l1">C4i &amp; Data Centre</div><div class="v1">100%</div></div>
+              <div class="ty-bar"><span class="green" style="width:100%;"></span></div>
+            </div>
+          </div>
+
+          <!-- Card 2: Overall delivery donut -->
+          <div class="ty-donut-wrap">
+            <div class="ty-title">Stage Delivery</div>
+            <div class="ty-big-donut">
+              <div class="ty-bd-center">
+                <div class="ty-bd-num">2/10</div>
+                <div class="ty-bd-lbl">Stages<br/>Delivered</div>
+              </div>
+            </div>
+            <div class="ty-donut-legend">
+              <div class="lg"><span class="sw" style="background:var(--ey-yellow);"></span><b>2</b> Delivered</div>
+              <div class="lg"><span class="sw" style="background:var(--red);"></span><b>8</b> Pending</div>
+              <div class="lg"><span class="sw" style="background:rgba(255,255,255,.1);"></span><b>0</b> At Risk</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Issues by severity -->
+          <div class="ty-sev-card">
+            <div class="ty-title">Issues by Severity</div>
+            <div class="ty-stacked-bar">
+              <div class="crit" style="flex:6;">6</div>
+              <div class="high" style="flex:9;">9</div>
+            </div>
+            <div class="ty-sev-list">
+              <div class="row"><span class="sw" style="background:var(--red);"></span><span class="l">Critical</span><span class="v">6</span></div>
+              <div class="row"><span class="sw" style="background:var(--orange);"></span><span class="l">High</span><span class="v">9</span></div>
+              <div class="row" style="border-top:1px solid rgba(255,255,255,.1);padding-top:5px;margin-top:2px;"><span class="sw" style="background:var(--ey-yellow);"></span><span class="l">Total Tracked</span><span class="v">15</span></div>
+            </div>
+          </div>
+
+          <!-- Card 4: Stakeholder comparison (spans 3 cols) -->
+          <div class="ty-sh-card">
+            <div class="ty-title">Stakeholder Issue Heat &middot; NEC vs RailTel</div>
+            <div class="ty-sh-grid">
+              <div class="ty-sh-col">
+                <h5>MSI — NEC Corporation <span class="tag">2 CRIT &middot; 3 HIGH</span></h5>
+                <div class="ty-sh-bar-row"><div class="l">Manpower crunch</div><div class="bar"><span style="width:100%;"></span></div><div class="v">5</div></div>
+                <div class="ty-sh-bar-row"><div class="l">Resource allocation</div><div class="bar"><span style="width:80%;"></span></div><div class="v">4</div></div>
+                <div class="ty-sh-bar-row"><div class="l">Software readiness</div><div class="bar"><span style="width:100%;"></span></div><div class="v">5</div></div>
+                <div class="ty-sh-bar-row"><div class="l">OEM dependency</div><div class="bar"><span class="warn" style="width:80%;"></span></div><div class="v">4</div></div>
+                <div class="ty-sh-bar-row"><div class="l">Ecosystem integration</div><div class="bar"><span class="warn" style="width:80%;"></span></div><div class="v">4</div></div>
+              </div>
+              <div class="ty-sh-col">
+                <h5>ISP — RailTel <span class="tag">3 CRIT &middot; 2 HIGH</span></h5>
+                <div class="ty-sh-bar-row"><div class="l">Single subcontractor</div><div class="bar"><span style="width:100%;"></span></div><div class="v">5</div></div>
+                <div class="ty-sh-bar-row"><div class="l">Physical infrastructure</div><div class="bar"><span style="width:100%;"></span></div><div class="v">5</div></div>
+                <div class="ty-sh-bar-row"><div class="l">SLA non-compliance</div><div class="bar"><span class="warn" style="width:80%;"></span></div><div class="v">4</div></div>
+                <div class="ty-sh-bar-row"><div class="l">NMS not deployed</div><div class="bar"><span style="width:100%;"></span></div><div class="v">5</div></div>
+                <div class="ty-sh-bar-row"><div class="l">Mgmt commitment</div><div class="bar"><span class="warn" style="width:80%;"></span></div><div class="v">4</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next steps strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+      <div style="background:rgba(255,255,255,.04);border-left:3px solid var(--ey-yellow);padding:8px 12px;">
+        <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">Next Step 01</div>
+        <div style="font-size:10.5px;color:#fff;font-weight:600;margin-top:3px;line-height:1.35;">Recovery plan with named owners</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-left:3px solid var(--ey-yellow);padding:8px 12px;">
+        <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">Next Step 02</div>
+        <div style="font-size:10.5px;color:#fff;font-weight:600;margin-top:3px;line-height:1.35;">Joint MSI + ISP micro-plan</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-left:3px solid var(--ey-yellow);padding:8px 12px;">
+        <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">Next Step 03</div>
+        <div style="font-size:10.5px;color:#fff;font-weight:600;margin-top:3px;line-height:1.35;">Restore FRS / ANPR / AIVA</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-left:3px solid var(--ey-yellow);padding:8px 12px;">
+        <div style="font-size:9px;color:var(--ey-yellow);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">Next Step 04</div>
+        <div style="font-size:10.5px;color:#fff;font-weight:600;margin-top:3px;line-height:1.35;">SLA-bound restoration cadence</div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="left">SAFE CITY PROJECT OF DELHI POLICE</div>
+      <div class="right">CONFIDENTIAL &middot; FOR OFFICIAL USE</div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /.slide-stage -->
+</div><!-- /#deck -->
+
+<!-- Visible navigation UI -->
+<div class="nav-ui" id="navUi">
+  <button id="prevBtn" title="Previous slide (Left arrow)">&#8249;</button>
+  <div class="pager"><span class="cur" id="pagerCur">1</span> / <span id="pagerTotal">11</span></div>
+  <button id="nextBtn" title="Next slide (Right arrow)">&#8250;</button>
+  <div class="dots" id="dots"></div>
+  <button class="grid-btn" id="gridBtn" title="View all slides">Grid</button>
+</div>
+
+<!-- Grid overview overlay -->
+<div class="grid-overlay" id="gridOverlay">
+  <div class="grid-header">
+    <div class="grid-title">All Slides &middot; Delhi Safe City Project</div>
+    <button class="grid-close" id="gridClose">Close (Esc)</button>
+  </div>
+  <div class="thumb-grid" id="thumbGrid"></div>
+</div>
+
+<script>
+  // ====== Static mode for converter (add ?static to URL to disable all animations) ======
+  if (window.location.search.indexOf('static') !== -1) {
+    document.body.classList.add('static-mode');
+  }
+
+  // ====== Responsive slide scaling — fit 1280x720 slide into available viewport ======
+  function updateSlideScale(){
+    var navReserve = 70;   // bottom space for nav bar
+    var margin = 24;       // breathing room around slide
+    var availW = window.innerWidth - margin * 2;
+    var availH = window.innerHeight - navReserve - margin;
+    var scale = Math.min(availW / 1280, availH / 720, 1);
+    if(scale < 0.3) scale = 0.3; // floor to keep readable
+    document.documentElement.style.setProperty('--slide-scale', scale);
+  }
+  window.addEventListener('resize', updateSlideScale);
+  updateSlideScale();
+
+  // Global slide navigation
+  var currentSlide = 0;
+  var totalSlides = document.querySelectorAll('.slide').length;
+  var slides = document.querySelectorAll('.slide');
+
+  function goToSlide(index){
+    if(index < 0 || index >= totalSlides) return;
+    for(var i=0;i<slides.length;i++){
+      slides[i].classList.remove('active');
+    }
+    slides[index].classList.add('active');
+    currentSlide = index;
+    updatePager();
+    updateDots();
+    var thumbs = document.querySelectorAll('.thumb');
+    for(var j=0;j<thumbs.length;j++){
+      thumbs[j].classList.toggle('active', j === index);
+    }
+  }
+
+  function nextSlide(){ if(currentSlide < totalSlides-1) goToSlide(currentSlide+1); }
+  function prevSlide(){ if(currentSlide > 0) goToSlide(currentSlide-1); }
+
+  function updatePager(){
+    document.getElementById('pagerCur').textContent = (currentSlide+1);
+    document.getElementById('pagerTotal').textContent = totalSlides;
+  }
+
+  function updateDots(){
+    var dots = document.querySelectorAll('.dots .dot');
+    for(var i=0;i<dots.length;i++){
+      dots[i].classList.toggle('active', i === currentSlide);
+    }
+  }
+
+  // Build dots
+  var dotsContainer = document.getElementById('dots');
+  for(var d=0; d<totalSlides; d++){
+    (function(idx){
+      var dot = document.createElement('div');
+      dot.className = 'dot' + (idx===0 ? ' active' : '');
+      dot.title = 'Slide ' + (idx+1);
+      dot.onclick = function(){ goToSlide(idx); };
+      dotsContainer.appendChild(dot);
+    })(d);
+  }
+
+  // Button events
+  document.getElementById('prevBtn').onclick = prevSlide;
+  document.getElementById('nextBtn').onclick = nextSlide;
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') nextSlide();
+    else if(e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+    else if(e.key === 'Home') goToSlide(0);
+    else if(e.key === 'End') goToSlide(totalSlides-1);
+    else if(e.key === 'Escape') hideGrid();
+    else if(e.key.toLowerCase() === 'g') toggleGrid();
+  });
+
+  // Grid overview
+  var gridOverlay = document.getElementById('gridOverlay');
+  var thumbGrid = document.getElementById('thumbGrid');
+
+  function buildThumbs(){
+    thumbGrid.innerHTML = '';
+    for(var i=0; i<totalSlides; i++){
+      (function(idx){
+        var thumb = document.createElement('div');
+        thumb.className = 'thumb' + (idx===currentSlide ? ' active' : '');
+        var num = document.createElement('div');
+        num.className = 'thumb-num';
+        num.textContent = String(idx+1).padStart(2,'0');
+        thumb.appendChild(num);
+        var clone = slides[idx].cloneNode(true);
+        clone.classList.add('active');
+        clone.style.position = 'absolute';
+        clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.boxShadow = 'none';
+        thumb.appendChild(clone);
+        thumb.onclick = function(){
+          goToSlide(idx);
+          hideGrid();
+        };
+        thumbGrid.appendChild(thumb);
+      })(i);
+    }
+  }
+
+  function showGrid(){ buildThumbs(); gridOverlay.classList.add('show'); }
+  function hideGrid(){ gridOverlay.classList.remove('show'); }
+  function toggleGrid(){
+    if(gridOverlay.classList.contains('show')) hideGrid();
+    else showGrid();
+  }
+
+  document.getElementById('gridBtn').onclick = toggleGrid;
+  document.getElementById('gridClose').onclick = hideGrid;
+
+  // Init
+  updatePager();
+  updateDots();
+</script>
+</body>
+</html>

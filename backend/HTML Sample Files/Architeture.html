@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three-Tier Unified Surveillance Architecture - EY Palette</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Strict EY Color Palette */
+        :root {
+            --ey-off-black: #2E2E38;
+            --ey-gray-01: #747480;
+            --ey-gray-02: #C4C4CD;
+            --ey-black: #000000;
+            --ey-white: #FFFFFF;
+            --ey-yellow: #FFE600;
+        }
+
+        body {
+            background-color: var(--ey-white);
+            color: var(--ey-off-black);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .canvas {
+            width: 100%;
+            max-width: 1100px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        /* Subtle Animated Background Grid using Gray 02 */
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: 
+                linear-gradient(var(--ey-gray-02) 1px, transparent 1px),
+                linear-gradient(90deg, var(--ey-gray-02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Typography & Headers */
+        .title-container {
+            text-align: center;
+            z-index: 10;
+            animation: fadeInDown 1s ease-out;
+            background: var(--ey-white);
+            padding: 20px 40px;
+            border: 3px solid var(--ey-black);
+            box-shadow: 8px 8px 0px var(--ey-yellow);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--ey-black);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 5px 0;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: var(--ey-gray-01);
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+
+        /* MPLS Badge - Now positioned statically to prevent overlap */
+        .mpls-badge {
+            background: var(--ey-yellow);
+            border: 3px solid var(--ey-black);
+            color: var(--ey-black);
+            padding: 12px 30px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            z-index: 10;
+            box-shadow: 6px 6px 0px var(--ey-off-black);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: -10px;
+            animation: fadeInDown 1s ease-out 0.2s backwards;
+        }
+
+        .mpls-badge span {
+            color: var(--ey-off-black);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Animated Network Spine (Background Line) */
+        .network-spine {
+            position: absolute;
+            top: 150px;
+            bottom: 300px;
+            left: 50%;
+            width: 6px;
+            background: var(--ey-gray-02);
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .data-flow {
+            position: absolute;
+            top: 100%;
+            left: -1px;
+            width: 8px;
+            height: 120px;
+            background: var(--ey-yellow);
+            border: 1px solid var(--ey-black);
+            animation: dataStream 3s linear infinite;
+        }
+
+        /* Infographic Cards (Tiers) - Now Fixed Width */
+        .tier {
+            width: 100%; /* All boxes the same size */
+            box-sizing: border-box;
+            background: var(--ey-white);
+            border: 3px solid var(--ey-black);
+            padding: 0;
+            position: relative;
+            z-index: 10;
+            box-shadow: 10px 10px 0px var(--ey-gray-02);
+            transition: all 0.4s ease;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .tier:hover {
+            transform: translateY(-5px);
+            box-shadow: 10px 10px 0px var(--ey-yellow);
+        }
+
+        .tier:nth-child(4) { animation-delay: 0.3s; }
+        .tier:nth-child(5) { animation-delay: 0.5s; }
+        .tier:nth-child(6) { animation-delay: 0.7s; }
+        .edge-section { animation: fadeInUp 0.8s ease-out 0.9s forwards; opacity: 0; }
+
+        .tier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--ey-off-black);
+            color: var(--ey-white);
+            padding: 15px 25px;
+            border-bottom: 3px solid var(--ey-black);
+        }
+
+        .tier-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .tier-title i {
+            color: var(--ey-yellow);
+            font-size: 22px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ey-yellow);
+        }
+
+        .pulse-wrapper {
+            position: relative;
+            width: 12px;
+            height: 12px;
+        }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background-color: var(--ey-yellow);
+            border-radius: 50%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .pulse-ring {
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--ey-yellow);
+            border-radius: 50%;
+            position: absolute;
+            top: -2px; left: -2px;
+            animation: pulseAnim 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        /* Inner Infographic Elements - Switched to Grid for perfect uniformity */
+        .tier-body {
+            padding: 25px;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background: var(--ey-white);
+            border: 2px solid var(--ey-gray-01);
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ey-off-black);
+            transition: all 0.3s ease;
+        }
+
+        .component:hover {
+            background: var(--ey-off-black);
+            color: var(--ey-white);
+            border-color: var(--ey-black);
+        }
+
+        .component i {
+            font-size: 18px;
+            color: var(--ey-black);
+            transition: color 0.3s;
+            width: 20px;
+            text-align: center;
+        }
+
+        .component:hover i {
+            color: var(--ey-yellow);
+        }
+
+        /* AI / Analytics Specific Highlight */
+        .component.ai-node {
+            border-left: 6px solid var(--ey-yellow);
+            border-color: var(--ey-black);
+        }
+        
+        .component.ai-node:hover {
+            background: var(--ey-yellow);
+            color: var(--ey-black);
+            border-color: var(--ey-black);
+        }
+
+        .component.ai-node:hover i {
+            color: var(--ey-black);
+        }
+
+        /* Edge Layer Styling */
+        .edge-section {
+            width: 100%;
+            border-top: 4px dashed var(--ey-gray-01);
+            padding-top: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .edge-title {
+            text-align: center;
+            color: var(--ey-black);
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            font-size: 18px;
+            background: var(--ey-white);
+            display: inline-block;
+            padding: 10px 20px;
+            border: 2px solid var(--ey-black);
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 4px 4px 0px var(--ey-yellow);
+        }
+
+        .edge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        .edge-card {
+            background: var(--ey-white);
+            border: 2px solid var(--ey-black);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 6px 6px 0px var(--ey-gray-02);
+        }
+
+        .edge-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 6px;
+            background: var(--ey-yellow);
+            border-bottom: 2px solid var(--ey-black);
+        }
+
+        .edge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 6px 6px 0px var(--ey-black);
+        }
+
+        .edge-icon {
+            font-size: 32px;
+            color: var(--ey-off-black);
+            margin: 10px 0 15px 0;
+        }
+
+        .edge-card h3 {
+            margin: 0 0 8px 0;
+            color: var(--ey-black);
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .edge-card p {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ey-gray-01);
+            line-height: 1.5;
+        }
+
+        /* Connecting Lines to Edge */
+        .connection-paths {
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+            height: 60px;
+            margin: 0 auto;
+        }
+
+        .path-line {
+            width: 4px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                var(--ey-white),
+                var(--ey-white) 5px,
+                var(--ey-gray-01) 5px,
+                var(--ey-gray-01) 15px
+            );
+            border-left: 1px solid var(--ey-white);
+            border-right: 1px solid var(--ey-white);
+            animation: marchingAnts 20s linear infinite;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes dataStream {
+            0% { top: 100%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: -120px; opacity: 0; }
+        }
+
+        @keyframes pulseAnim {
+            0% { transform: scale(1); opacity: 1; border-width: 2px; }
+            100% { transform: scale(2.5); opacity: 0; border-width: 1px; }
+        }
+
+        @keyframes marchingAnts {
+            from { background-position: 0 0; }
+            to { background-position: 0 -1000px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-overlay"></div>
+
+<div class="canvas">
+    
+    <!-- Background Animated Line -->
+    <div class="network-spine"><div class="data-flow"></div></div>
+
+    <!-- Header -->
+    <div class="title-container">
+        <h1>Unified Surveillance Architecture</h1>
+        <div class="subtitle"><i class="fa-solid fa-shield-halved" style="color: var(--ey-black); margin-right: 8px;"></i> GOVERNMENT-GRADE 3-TIER INTEGRATION FRAMEWORK</div>
+    </div>
+
+    <!-- Network Backbone Badge - Moved inline to prevent overlap -->
+    <div class="mpls-badge">
+        <span><i class="fa-solid fa-network-wired" style="margin-right:5px;"></i> SECURE MPLS VPN BACKBONE</span>
+        Redundant Fiber & High Availability Links
+    </div>
+
+    <!-- TIER 3: National -->
+    <div class="tier">
+        <div class="tier-header">
+            <div class="tier-title"><i class="fa-solid fa-building-columns"></i> TIER 3: NATIONAL COMMAND CENTER</div>
+            <div class="status-indicator">Active Monitoring 
+                <div class="pulse-wrapper"><div class="pulse-dot"></div><div class="pulse-ring"></div></div>
+            </div>
+        </div>
+        <div class="tier-body">
+            <div class="components-grid">
+                <div class="component"><i class="fa-solid fa-earth-americas"></i> National Surveillance Integration</div>
+                <div class="component"><i class="fa-solid fa-map-location-dot"></i> Multi-State Monitoring</div>
+                <div class="component ai-node"><i class="fa-solid fa-shield-virus"></i> Threat Intelligence Dashboard</div>
+                <div class="component"><i class="fa-solid fa-users-viewfinder"></i> National Command Operators</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIER 2: State -->
+    <div class="tier">
+        <div class="tier-header">
+            <div class="tier-title"><i class="fa-solid fa-building-flag"></i> TIER 2: STATE COMMAND & CONTROL</div>
+            <div class="status-indicator">Federated Sync 
+                <div class="pulse-wrapper"><div class="pulse-dot"></div><div class="pulse-ring"></div></div>
+            </div>
+        </div>
+        <div class="tier-body">
+            <div class="components-grid">
+                <div class="component"><i class="fa-solid fa-server"></i> State Data Center (SDC)</div>
+                <div class="component"><i class="fa-solid fa-sitemap"></i> Centralized VMS Federation</div>
+                <div class="component ai-node"><i class="fa-solid fa-brain"></i> AI Analytics Correlation</div>
+                <div class="component"><i class="fa-solid fa-building-shield"></i> State SOC / NOC</div>
+                <div class="component"><i class="fa-solid fa-database"></i> Disaster Recovery Integration</div>
+                <div class="component"><i class="fa-solid fa-border-all"></i> Video Wall (State-wide View)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIER 1: District -->
+    <div class="tier">
+        <div class="tier-header">
+            <div class="tier-title"><i class="fa-solid fa-city"></i> TIER 1: DISTRICT MONITORING CENTER</div>
+            <div class="status-indicator">Local Aggregation 
+                <div class="pulse-wrapper"><div class="pulse-dot"></div><div class="pulse-ring"></div></div>
+            </div>
+        </div>
+        <div class="tier-body">
+            <div class="components-grid">
+                <div class="component"><i class="fa-solid fa-network-wired"></i> District VMS Aggregation Server</div>
+                <div class="component ai-node"><i class="fa-solid fa-microchip"></i> Edge AI Analytics Server</div>
+                <div class="component"><i class="fa-solid fa-hard-drive"></i> High-Speed Storage (NAS/SAN)</div>
+                <div class="component"><i class="fa-solid fa-truck-fast"></i> Incident Management System</div>
+                <div class="component"><i class="fa-solid fa-user-police"></i> Law Enforcement Access Portal</div>
+                <div class="component"><i class="fa-solid fa-heart-pulse"></i> Real-Time Health Monitoring</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection to Edge -->
+    <div style="width: 100%; position: relative; z-index: 1; margin-top: -20px;">
+        <div class="connection-paths">
+            <div class="path-line"></div>
+            <div class="path-line"></div>
+            <div class="path-line"></div>
+            <div class="path-line"></div>
+            <div class="path-line"></div>
+        </div>
+    </div>
+
+    <!-- EDGE LAYER -->
+    <div class="edge-section">
+        <div class="edge-title">
+            <i class="fa-solid fa-video" style="color: var(--ey-black); margin-right: 8px;"></i> 
+            EDGE LAYER: HETEROGENEOUS PUBLIC SURVEILLANCE
+        </div>
+        
+        <div class="edge-grid">
+            <!-- Edge Node 1 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-store"></i></div>
+                <h3>Shops & Markets</h3>
+                <p>Existing IP Cameras<br>Local NVRs / DVRs</p>
+            </div>
+            <!-- Edge Node 2 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+                <h3>Shopping Malls</h3>
+                <p>High-Density Cameras<br>Local VMS Servers</p>
+            </div>
+            <!-- Edge Node 3 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-futbol"></i></div>
+                <h3>Stadiums</h3>
+                <p>PTZ & Crowd Monitoring<br>Local Control Room</p>
+            </div>
+            <!-- Edge Node 4 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-building-user"></i></div>
+                <h3>Residential Societies</h3>
+                <p>Perimeter Security<br>Standalone NVRs</p>
+            </div>
+            <!-- Edge Node 5 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-tree-city"></i></div>
+                <h3>Public Areas</h3>
+                <p>City Surveillance<br>Wireless IP Links</p>
+            </div>
+            <!-- Edge Node 6 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-gas-pump"></i></div>
+                <h3>Petrol Pumps</h3>
+                <p>Explosion-Proof Cameras<br>Edge Storage</p>
+            </div>
+            <!-- Edge Node 7 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-traffic-light"></i></div>
+                <h3>Traffic Junctions</h3>
+                <p>ANPR & RLVD Systems<br>Edge Analytics</p>
+            </div>
+            <!-- Edge Node 8 -->
+            <div class="edge-card">
+                <div class="edge-icon"><i class="fa-solid fa-industry"></i></div>
+                <h3>Industrial Zones</h3>
+                <p>Thermal Cameras<br>Commercial VMS</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

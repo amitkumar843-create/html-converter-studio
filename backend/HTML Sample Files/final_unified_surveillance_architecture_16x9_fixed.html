@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Surveillance Architecture — Corrected 16:9</title>
+  <style>
+    :root {
+      --ey-off-black:#2E2E38;
+      --ey-gray-01:#747480;
+      --ey-gray-02:#C4C4CD;
+      --ey-black:#000000;
+      --ey-white:#FFFFFF;
+      --ey-yellow:#FFE600;
+      --ey-green:#2DB757;
+      --ey-teal:#27ACAA;
+      --ey-purple:#8B6BD6;
+      --ey-blue:#4A90E2;
+      --bg:#F7F8FB;
+      --panel:#FCFCFD;
+      --shadow:0 10px 20px rgba(0,0,0,.10);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+      background: #eceef3;
+      color: var(--ey-off-black);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide {
+      width: 1280px;
+      height: 720px;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(255,230,0,.18) 0 12%, transparent 32%),
+        radial-gradient(circle at 92% 6%, rgba(39,172,170,.12) 0 10%, transparent 28%),
+        linear-gradient(180deg, #fbfcfe 0%, #f5f7fb 100%);
+      border: 0;
+      overflow: hidden;
+      position: relative;
+      padding: 16px;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(196,196,205,.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(196,196,205,.18) 1px, transparent 1px);
+      background-size: 32px 32px;
+      opacity: .55;
+      pointer-events: none;
+    }
+
+    .layout {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: 104px 52px 1fr 96px;
+      gap: 12px;
+    }
+
+    .card {
+      background: rgba(255,255,255,.88);
+      border: 2px solid var(--ey-off-black);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1.6fr .92fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .title-card {
+      padding: 16px 18px 10px 18px;
+      position: relative;
+      background: rgba(255,255,255,.82);
+    }
+
+    .title-card::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--ey-yellow), var(--ey-teal), var(--ey-purple));
+    }
+
+    .ey-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--ey-off-black);
+      color: white;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .ey-pill .dot {
+      width: 9px; height: 9px; border-radius: 50%; background: var(--ey-yellow);
+      box-shadow: 0 0 0 4px rgba(255,230,0,.22);
+    }
+
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 31px;
+      line-height: 1.02;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--ey-black);
+    }
+
+    .subtitle {
+      font-size: 12px;
+      line-height: 1.3;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+      max-width: 94%;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .kpi {
+      background: rgba(255,255,255,.9);
+      border: 2px solid var(--ey-off-black);
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+      position: relative;
+      min-width: 0;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--ey-yellow), var(--ey-off-black));
+    }
+    .kpi:nth-child(2)::before { background: linear-gradient(90deg, var(--ey-teal), var(--ey-blue)); }
+    .kpi:nth-child(3)::before { background: linear-gradient(90deg, var(--ey-purple), #DA4F5A); }
+
+    .kpi .label {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--ey-gray-01);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .kpi .value {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: var(--ey-black);
+    }
+
+    .kpi .meta {
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--ey-off-black);
+      word-break: break-word;
+    }
+
+    .backbone {
+      background: linear-gradient(90deg, #31313e 0%, #3e3e4f 50%, #31313e 100%);
+      color: var(--ey-white);
+      border: 2px solid var(--ey-black);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1.1fr 2fr;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .backbone-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .net-icon {
+      width: 34px; height: 34px; border-radius: 12px;
+      background: var(--ey-yellow);
+      color: var(--ey-black);
+      display: grid; place-items: center;
+      border: 2px solid var(--ey-black);
+      font-weight: 900; font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .backbone-right {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .bb-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,.38);
+      background: rgba(255,255,255,.08);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .45px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .bb-pill .mini-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--ey-yellow); flex-shrink: 0;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1.18fr .82fr .86fr .86fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: rgba(255,255,255,.82);
+      border: 2px solid var(--ey-off-black);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      position: relative;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 8px;
+      background: var(--ey-yellow);
+    }
+    .edge::before { background: linear-gradient(90deg, #a5d645, var(--ey-green)); }
+    .district::before { background: linear-gradient(90deg, var(--ey-yellow), #f1d900); }
+    .state::before { background: linear-gradient(90deg, var(--ey-teal), #2eb9c6); }
+    .national::before { background: linear-gradient(90deg, var(--ey-purple), #b06ad8); }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 22px 14px 8px;
+      min-height: 0;
+    }
+
+    .head-left {
+      display: flex;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .icon-box {
+      width: 42px; height: 42px; border-radius: 14px;
+      display: grid; place-items: center;
+      border: 2px solid var(--ey-black);
+      background: #f0f8ef;
+      font-size: 18px; font-weight: 900;
+      flex-shrink: 0;
+    }
+    .district .icon-box { background: #f6ec99; }
+    .state .icon-box { background: #99ebe7; }
+    .national .icon-box { background: #d8c9ff; }
+
+    .cap {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 900;
+      color: var(--ey-gray-01);
+      margin-bottom: 5px;
+    }
+
+    .name {
+      font-size: 17px;
+      line-height: 1.02;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--ey-black);
+      word-break: break-word;
+    }
+
+    .status {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.95);
+      border: 1.5px solid var(--ey-gray-01);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--ey-off-black);
+      max-width: 108px;
+      text-align: left;
+    }
+
+    .live {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--ey-green);
+      flex-shrink: 0; box-shadow: 0 0 0 4px rgba(45,183,87,.18);
+    }
+
+    .panel-body {
+      padding: 0 12px 10px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 6px 9px;
+      border-radius: 999px;
+      border: 1.4px solid var(--ey-off-black);
+      background: #fff;
+      font-size: 9px;
+      line-height: 1;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .edge-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .edge-tile {
+      border: 1.4px solid var(--ey-gray-01);
+      border-radius: 14px;
+      background: rgba(255,255,255,.94);
+      padding: 8px 6px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      justify-content: flex-start;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .edge-icon {
+      width: 30px; height: 30px; border-radius: 10px;
+      display: grid; place-items: center;
+      border: 1.5px solid var(--ey-off-black);
+      background: #eef8ef;
+      font-size: 14px; font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .edge-tile strong {
+      display: block;
+      font-size: 10px;
+      line-height: 1.08;
+      text-transform: uppercase;
+      word-break: break-word;
+    }
+
+    .edge-tile span {
+      display: block;
+      font-size: 8px;
+      line-height: 1.22;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .mini {
+      border: 1.4px solid var(--ey-gray-01);
+      border-radius: 14px;
+      background: rgba(255,255,255,.94);
+      padding: 10px 8px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .mini.ai { background: linear-gradient(135deg, rgba(255,230,0,.18), rgba(255,255,255,.96)); border-color: var(--ey-black); }
+    .mini.teal { background: linear-gradient(135deg, rgba(39,172,170,.13), rgba(255,255,255,.96)); }
+    .mini.purple { background: linear-gradient(135deg, rgba(139,107,214,.14), rgba(255,255,255,.96)); }
+
+    .mini-ic {
+      width: 32px; height: 32px; border-radius: 10px;
+      display: grid; place-items: center;
+      border: 1.5px solid var(--ey-off-black);
+      background: #f5f6fa;
+      font-size: 12px; font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .mini-text { min-width: 0; }
+    .mini strong {
+      display: block;
+      font-size: 9px;
+      line-height: 1.18;
+      text-transform: uppercase;
+      word-break: break-word;
+      margin-bottom: 4px;
+    }
+    .mini span {
+      display: block;
+      font-size: 7px;
+      line-height: 1.28;
+      color: var(--ey-gray-01);
+      font-weight: 700;
+    }
+
+    .bottom {
+      display: grid;
+      grid-template-columns: 1.15fr 1.85fr;
+      gap: 0;
+      min-height: 0;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid var(--ey-off-black);
+      box-shadow: var(--shadow);
+      background: linear-gradient(90deg, #31313e 0%, #3e3e4f 100%);
+    }
+
+    .bottom-left {
+      background: linear-gradient(135deg, #f0df2c 0%, #efe67a 100%);
+      border-right: 2px solid var(--ey-black);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .bottom-left .tag {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: var(--ey-black);
+    }
+
+    .bottom-left .big {
+      font-size: 18px;
+      line-height: 1.02;
+      font-weight: 900;
+      color: var(--ey-black);
+      text-transform: uppercase;
+    }
+
+    .outcomes {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      min-height: 0;
+    }
+
+    .outcome {
+      border-left: 1px solid rgba(255,255,255,.12);
+      padding: 10px 8px 8px;
+      color: white;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .o-ic {
+      width: 32px; height: 32px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.20);
+      font-size: 14px; font-weight: 900;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+
+    .outcome strong {
+      display: block;
+      font-size: 8px;
+      line-height: 1.18;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 3px;
+      word-break: break-word;
+    }
+
+    .outcome span {
+      display: block;
+      font-size: 7px;
+      line-height: 1.25;
+      color: rgba(255,255,255,.78);
+      font-weight: 700;
+    }
+
+    .legend {
+      position: absolute;
+      right: 18px;
+      bottom: 102px;
+      display: flex;
+      gap: 6px;
+      z-index: 2;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: rgba(255,255,255,.88);
+      border: 1.4px solid var(--ey-gray-01);
+      border-radius: 999px;
+      font-size: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .sw { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--ey-off-black); }
+    .y { background: var(--ey-yellow); }
+    .t { background: var(--ey-teal); }
+    .p { background: var(--ey-purple); }
+    .g { background: var(--ey-green); }
+
+    @media print {
+      body { background: #fff; }
+      .slide { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <div class="layout">
+      <div class="top">
+        <div class="title-card card">
+          <div class="ey-pill"><span class="dot"></span>EY | Unified Command Architecture</div>
+          <h1>Unified Surveillance Architecture</h1>
+          <div class="subtitle">Infographic-wide 16:9 single-slide architecture showing edge capture, district aggregation, state command and national oversight over a secure MPLS backbone.</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi card">
+            <div class="label">Architecture Model</div>
+            <div class="value">4 Layers</div>
+            <div class="meta">Edge → District → State → National</div>
+          </div>
+          <div class="kpi card">
+            <div class="label">Network Fabric</div>
+            <div class="value">HA MPLS</div>
+            <div class="meta">Redundant secure transport & federation</div>
+          </div>
+          <div class="kpi card">
+            <div class="label">Analytics Stack</div>
+            <div class="value">AI Enabled</div>
+            <div class="meta">FRS, ANPR, alerts and datalake</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="backbone">
+        <div class="backbone-left"><div class="net-icon">◎</div>Secure MPLS VPN Backbone</div>
+        <div class="backbone-right">
+          <div class="bb-pill"><span class="mini-dot"></span>Redundant Fiber Links</div>
+          <div class="bb-pill"><span class="mini-dot"></span>Encrypted Inter-Site Transport</div>
+          <div class="bb-pill"><span class="mini-dot"></span>High Availability & Disaster Recovery</div>
+        </div>
+      </div>
+
+      <div class="main">
+        <section class="panel edge">
+          <div class="panel-head">
+            <div class="head-left">
+              <div class="icon-box">◫</div>
+              <div><div class="cap">Capture Layer</div><div class="name">Edge Surveillance Sources</div></div>
+            </div>
+            <div class="status"><span class="live"></span>Active Feeds</div>
+          </div>
+          <div class="panel-body">
+            <div class="chip-row">
+              <div class="chip">IP Cameras</div>
+              <div class="chip">NVR / DVR</div>
+              <div class="chip">Edge Analytics</div>
+            </div>
+            <div class="edge-grid">
+              <div class="edge-tile"><div class="edge-icon">⌂</div><strong>Markets</strong><span>Retail feeds & local recording</span></div>
+              <div class="edge-tile"><div class="edge-icon">▣</div><strong>Malls</strong><span>High-density clusters & monitoring</span></div>
+              <div class="edge-tile"><div class="edge-icon">◉</div><strong>Stadiums</strong><span>PTZ and event coverage</span></div>
+              <div class="edge-tile"><div class="edge-icon">⌘</div><strong>Public Areas</strong><span>Street poles and junction view</span></div>
+              <div class="edge-tile"><div class="edge-icon">⌸</div><strong>Societies</strong><span>Perimeter and gate monitoring</span></div>
+              <div class="edge-tile"><div class="edge-icon">⛽</div><strong>Petrol Pumps</strong><span>Specialized cameras on site</span></div>
+              <div class="edge-tile"><div class="edge-icon">⇄</div><strong>Traffic</strong><span>ANPR / RLVD corridors</span></div>
+              <div class="edge-tile"><div class="edge-icon">▤</div><strong>Industrial</strong><span>Thermal and safety view</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel district">
+          <div class="panel-head">
+            <div class="head-left">
+              <div class="icon-box">D</div>
+              <div><div class="cap">Tier 1</div><div class="name">District Monitoring Center</div></div>
+            </div>
+            <div class="status"><span class="live"></span>Local Aggregation</div>
+          </div>
+          <div class="panel-body">
+            <div class="chip-row">
+              <div class="chip">VMS</div>
+              <div class="chip">Storage</div>
+              <div class="chip">Operator Console</div>
+            </div>
+            <div class="info-grid">
+              <div class="mini"><div class="mini-ic">◧</div><div class="mini-text"><strong>District VMS Federation</strong><span>Receives and organizes field streams.</span></div></div>
+              <div class="mini ai"><div class="mini-ic">AI</div><div class="mini-text"><strong>Edge AI Analytics</strong><span>Object, behavior and event models.</span></div></div>
+              <div class="mini"><div class="mini-ic">DB</div><div class="mini-text"><strong>NAS / SAN Storage</strong><span>Retention and indexed video evidence.</span></div></div>
+              <div class="mini"><div class="mini-ic">OPS</div><div class="mini-text"><strong>Incident Desk</strong><span>Dispatch support and ticket workflow.</span></div></div>
+              <div class="mini"><div class="mini-ic">HE</div><div class="mini-text"><strong>Health Monitoring</strong><span>Uptime of cameras, links and servers.</span></div></div>
+              <div class="mini"><div class="mini-ic">LE</div><div class="mini-text"><strong>Police Access Portal</strong><span>Review, playback and evidence access.</span></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel state">
+          <div class="panel-head">
+            <div class="head-left">
+              <div class="icon-box">S</div>
+              <div><div class="cap">Tier 2</div><div class="name">State Command & Control</div></div>
+            </div>
+            <div class="status"><span class="live"></span>Federated Sync</div>
+          </div>
+          <div class="panel-body">
+            <div class="chip-row">
+              <div class="chip">State Data Center</div>
+              <div class="chip">SOC / NOC</div>
+              <div class="chip">Video Wall</div>
+            </div>
+            <div class="info-grid">
+              <div class="mini teal"><div class="mini-ic">SDC</div><div class="mini-text"><strong>State Data Center</strong><span>Central compute and orchestration.</span></div></div>
+              <div class="mini teal"><div class="mini-ic">VMS</div><div class="mini-text"><strong>Central VMS Federation</strong><span>Cross-district visibility and control.</span></div></div>
+              <div class="mini ai"><div class="mini-ic">ML</div><div class="mini-text"><strong>AI Correlation Engine</strong><span>Pattern matching across districts.</span></div></div>
+              <div class="mini teal"><div class="mini-ic">SOC</div><div class="mini-text"><strong>State SOC / NOC</strong><span>Monitoring, alarms and escalation.</span></div></div>
+              <div class="mini teal"><div class="mini-ic">DR</div><div class="mini-text"><strong>Disaster Recovery</strong><span>Failover posture for critical services.</span></div></div>
+              <div class="mini teal"><div class="mini-ic">VW</div><div class="mini-text"><strong>Unified Video Wall</strong><span>Wide situational visualization.</span></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel national">
+          <div class="panel-head">
+            <div class="head-left">
+              <div class="icon-box">N</div>
+              <div><div class="cap">Tier 3</div><div class="name">National Command Center</div></div>
+            </div>
+            <div class="status"><span class="live"></span>Strategic Oversight</div>
+          </div>
+          <div class="panel-body">
+            <div class="chip-row">
+              <div class="chip">Inter-State View</div>
+              <div class="chip">Threat Intelligence</div>
+              <div class="chip">Policy Oversight</div>
+            </div>
+            <div class="info-grid">
+              <div class="mini purple"><div class="mini-ic">INT</div><div class="mini-text"><strong>National Integration</strong><span>Aggregate view for multi-region command.</span></div></div>
+              <div class="mini purple"><div class="mini-ic">MAP</div><div class="mini-text"><strong>Geo-Spatial Operations</strong><span>Situational awareness across corridors.</span></div></div>
+              <div class="mini ai"><div class="mini-ic">TI</div><div class="mini-text"><strong>Threat Intelligence</strong><span>Fusion of alerts and strategic insights.</span></div></div>
+              <div class="mini purple"><div class="mini-ic">OPS</div><div class="mini-text"><strong>Decision Support</strong><span>Leadership dashboard and command view.</span></div></div>
+              <div class="mini purple"><div class="mini-ic">GOV</div><div class="mini-text"><strong>Governance & Audit</strong><span>Policy, access control and trail review.</span></div></div>
+              <div class="mini purple"><div class="mini-ic">24</div><div class="mini-text"><strong>Continuous Monitoring</strong><span>Persistent surveillance watch capability.</span></div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="bottom">
+        <div class="bottom-left">
+          <div class="tag">Integrated Outcomes</div>
+          <div class="big">AI-Enabled Command, Monitoring and Response</div>
+        </div>
+        <div class="outcomes">
+          <div class="outcome"><div class="o-ic">FR</div><strong>Face Recognition</strong><span>Watchlist and forensic search</span></div>
+          <div class="outcome"><div class="o-ic">AN</div><strong>ANPR</strong><span>Vehicle identification and hotspots</span></div>
+          <div class="outcome"><div class="o-ic">VS</div><strong>Video Summarization</strong><span>Condensed incident review</span></div>
+          <div class="outcome"><div class="o-ic">DL</div><strong>Data Lake</strong><span>Metadata, logs and analytics repository</span></div>
+          <div class="outcome"><div class="o-ic">AL</div><strong>Alerts & Escalation</strong><span>Automated workflows and SLA routing</span></div>
+          <div class="outcome"><div class="o-ic">HW</div><strong>Health & Uptime</strong><span>Availability of cameras, links and VMS</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="sw y"></span>District</div>
+      <div class="legend-item"><span class="sw t"></span>State</div>
+      <div class="legend-item"><span class="sw p"></span>National</div>
+      <div class="legend-item"><span class="sw g"></span>Edge</div>
+    </div>
+  </div>
+</body>
+</html>
