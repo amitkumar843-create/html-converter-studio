@@ -1,0 +1,1228 @@
+import asyncio
+import os
+import sys
+import uuid
+import tempfile
+import math
+import re
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
+
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+
+BASE_DIR = Path(__file__).parent
+OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+
+# ADDITIVE (§5.9): emoji-as-icon font fallback. PowerPoint's default font
+# substitution renders emoji as tofu boxes; Segoe UI Emoji carries the glyphs.
+_EMOJI_RE = re.compile(
+    "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\u2190-\u21FF\u2B00-\u2BFF]"
+)
+
+
+def _contains_emoji(text: str) -> bool:
+    return bool(text) and bool(_EMOJI_RE.search(text))
+
+
+# ADDITIVE (§5.6): explicit icon-font glyph loading. document.fonts.ready alone
+# can race ahead of CDN-injected @font-face rules, leaving icons blank.
+_LOAD_ICON_FONTS_JS = """
+    async () => {
+        const families = [
+            '900 1px "Font Awesome 6 Free"', '400 1px "Font Awesome 6 Free"',
+            '400 1px "Font Awesome 6 Brands"',
+            '900 1px "Font Awesome 5 Free"', '400 1px "Font Awesome 5 Free"',
+            '400 1px "Phosphor"', '700 1px "Phosphor-Bold"',
+            '400 1px "Phosphor-Fill"', '400 1px "Phosphor-Regular"',
+            '300 1px "Phosphor-Light"', '400 1px "Phosphor-Thin"',
+            '400 1px "Phosphor-Duotone"',
+        ];
+        await Promise.all(families.map(f => document.fonts.load(f).catch(() => {})));
+        await document.fonts.ready;
+    }
+"""
+
+
+async def _load_icon_fonts(page):
+    try:
+        await page.evaluate(_LOAD_ICON_FONTS_JS)
+    except Exception:
+        pass
+
+
+# BUG FIX: every card/icon screenshot was being written as an OPAQUE rectangle,
+# so each shape dropped onto a PowerPoint slide carried a white (or slide-
+# coloured) block behind it. That is the real source of the "shadow"/"box"
+# artefacts around the Delhi Police logo and the coloured icon tiles, and it
+# only becomes obvious when a shape is dragged off the slide.
+#
+# omit_background=True was already being passed, but Chromium can only emit an
+# alpha channel when nothing opaque paints behind the clip: an ancestor's
+# background (body / .slide / the card) fills it in. So before each capture we
+# isolate the element — clear the backgrounds of its ANCESTORS only (its own
+# background is part of the artwork and must survive), and hide anything else
+# that intrudes into the clip box. Everything is restored immediately after.
+_ISOLATE_JS = """
+    (args) => {
+        const el = document.querySelector(args.sel);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const pad = args.pad || 0;
+        const box = { l: r.left - pad, t: r.top - pad, r: r.right + pad, b: r.bottom + pad };
+        const saved = [];
+        const remember = (n) => saved.push([n, n.getAttribute('style')]);
+
+        const ancestors = new Set();
+        let n = el.parentElement;
+        while (n) {
+            ancestors.add(n);
+            remember(n);
+            n.style.setProperty('background', 'transparent', 'important');
+            n.style.setProperty('background-color', 'transparent', 'important');
+            n.style.setProperty('background-image', 'none', 'important');
+            n.style.setProperty('box-shadow', 'none', 'important');
+            // BUG FIX: an ancestor's ::before/::after cannot be reached through
+            // inline style, so decorative pseudo-element blobs (e.g.
+            // .info-head.maroon::after — a 105px rgba(255,255,255,.12) circle)
+            // bled into every nested capture as a faint wash, showing up as a
+            // pale rectangle behind small cards. Tag ancestors so a stylesheet
+            // rule can switch their pseudo-elements off. The captured element's
+            // OWN pseudo-elements are untouched — they are part of its artwork.
+            n.setAttribute('data-ppt-iso', '');
+            n = n.parentElement;
+        }
+        const isoStyle = document.createElement('style');
+        isoStyle.id = '__pptIsoStyle';
+        isoStyle.textContent =
+            '[data-ppt-iso]::before,[data-ppt-iso]::after{content:none !important;' +
+            'background:none !important;box-shadow:none !important;border:0 !important;}';
+        document.head.appendChild(isoStyle);
+        document.documentElement.style.setProperty('background', 'transparent', 'important');
+        document.body.style.setProperty('background', 'transparent', 'important');
+
+        document.body.querySelectorAll('*').forEach(o => {
+            if (o === el || el.contains(o) || ancestors.has(o) || o.contains(el)) return;
+            const b = o.getBoundingClientRect();
+            if (b.width === 0 || b.height === 0) return;
+            if (b.right < box.l || b.left > box.r || b.bottom < box.t || b.top > box.b) return;
+            remember(o);
+            o.style.setProperty('visibility', 'hidden', 'important');
+        });
+
+        // CHANGE (option B): when capturing a PARENT card, hide the cards nested
+        // inside it. Without this the parent's image would contain its children's
+        // graphics, and those children are also captured separately — drawing the
+        // same artwork twice. Non-card content inside the parent (plain text,
+        // connector rules) stays visible, because nothing else captures it.
+        if (args.hideNested) {
+            el.querySelectorAll('[data-ppt-card]').forEach(o => {
+                remember(o);
+                o.style.setProperty('visibility', 'hidden', 'important');
+            });
+        }
+
+        window.__pptIsolated = saved;
+        return true;
+    }
+"""
+
+_RESTORE_JS = """
+    () => {
+        const st = document.getElementById('__pptIsoStyle');
+        if (st) st.remove();
+        document.querySelectorAll('[data-ppt-iso]').forEach(n => n.removeAttribute('data-ppt-iso'));
+        const saved = window.__pptIsolated || [];
+        for (const [n, s] of saved) {
+            if (s === null) n.removeAttribute('style');
+            else n.setAttribute('style', s);
+        }
+        window.__pptIsolated = [];
+    }
+"""
+
+
+async def _isolate(page, selector, pad, hide_nested=False):
+    try:
+        return await page.evaluate(
+            _ISOLATE_JS, {"sel": selector, "pad": pad, "hideNested": hide_nested}
+        )
+    except Exception:
+        return None
+
+
+async def _restore(page):
+    try:
+        await page.evaluate(_RESTORE_JS)
+    except Exception:
+        pass
+
+
+# HARDENING: if a CDN icon font fails to load (offline build box, air-gapped
+# network, blocked domain, CDN outage) every <i class="fa-..."> renders as an
+# empty box and the converter silently ships a deck of blank icon tiles that
+# looks like the infographics vanished. Detect it and say so.
+_ICON_FONT_CHECK_JS = """
+    () => {
+        // document.fonts.check() is NOT usable here: per spec it returns true
+        // when the family is simply undefined, because the fallback font is
+        // always "available". Measure the symptom instead — an icon element
+        // whose glyph never arrived collapses to a zero-sized box (or renders
+        // the literal codepoint as tofu).
+        const sel = 'i[class*="fa-"], i.fa, i.fas, i.far, i.fab,'
+                  + ' i[class*="ph-"], i.ph, span[class*="ph-"], .material-icons';
+        let nodes = [];
+        try { nodes = Array.from(document.querySelectorAll(sel)); } catch (e) { return []; }
+        if (!nodes.length) return [];
+        let checked = 0, blank = 0;
+        for (const el of nodes) {
+            const cs = getComputedStyle(el);
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+            checked++;
+            const r = el.getBoundingClientRect();
+            if (r.width < 1 || r.height < 1) blank++;
+        }
+        if (!checked) return [];
+        // A few legitimately-hidden icons are normal; a majority is a font failure.
+        if (blank / checked < 0.5) return [];
+        return [blank + ' of ' + checked + ' icon elements render with no glyph'];
+    }
+"""
+
+
+async def _warn_if_icon_fonts_missing(page):
+    try:
+        missing = await page.evaluate(_ICON_FONT_CHECK_JS)
+    except Exception:
+        return
+    if missing:
+        print(
+            "WARNING: icon font(s) did not load: " + "; ".join(missing) + ".\n"
+            "         Icons will export BLANK. The deck loads them from a CDN "
+            "(e.g. cdnjs.cloudflare.com);\n"
+            "         check network access, or vendor the font locally into the HTML "
+            "before converting.",
+            file=sys.stderr,
+        )
+
+
+
+def safe_pptx_filename(source_filename: str | None = None) -> str:
+    """Create PPTX output name from original uploaded HTML file name."""
+    if not source_filename:
+        return f"{uuid.uuid4().hex}.pptx"
+
+    stem = Path(str(source_filename)).stem.strip()
+    if not stem:
+        return f"{uuid.uuid4().hex}.pptx"
+
+    # Windows-safe filename cleanup.
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', stem)
+    stem = re.sub(r'\s+', ' ', stem).strip().rstrip('.')
+    if not stem:
+        return f"{uuid.uuid4().hex}.pptx"
+
+    return f"{stem}.pptx"
+
+
+def unique_output_path(file_name: str) -> Path:
+    """Avoid overwriting existing PPTX by appending _1, _2, etc."""
+    output_path = OUTPUT_DIR / file_name
+    if not output_path.exists():
+        return output_path
+
+    stem = Path(file_name).stem
+    suffix = Path(file_name).suffix or ".pptx"
+    counter = 1
+    while True:
+        candidate = OUTPUT_DIR / f"{stem}_{counter}{suffix}"
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+def is_slide_deck(html_content: str) -> bool:
+    soup = BeautifulSoup(html_content, "html.parser")
+    return len(soup.select(".slide")) > 1
+
+def count_slides(html_content: str) -> int:
+    soup = BeautifulSoup(html_content, "html.parser")
+    # Support normal decks (.slide) and wrapper/iframe decks such as GNIDA_v5 (.slide-shell)
+    count = len(soup.select(".slide"))
+    if count == 0:
+        count = len(soup.select(".slide-shell"))
+    # FIX: If no slide container exists, treat the entire body as 1 slide
+    return count if count > 0 else 1
+
+def build_layered_pptx(slide_data_list, output_file):
+    prs = Presentation()
+    blank_slide_layout = prs.slide_layouts[6]
+    
+    for idx, slide_data in enumerate(slide_data_list):
+        if idx == 0:
+            prs.slide_width = Inches(slide_data["width"] / 96.0)
+            prs.slide_height = Inches(slide_data["height"] / 96.0)
+        
+        slide = prs.slides.add_slide(blank_slide_layout)
+        clip_x = slide_data['clip_x']
+        clip_y = slide_data['clip_y']
+
+        slide.shapes.add_picture(
+            str(slide_data['bg_img_path']), 0, 0,
+            width=Inches(slide_data["width"] / 96.0), 
+            height=Inches(slide_data["height"] / 96.0)
+        )
+        
+        for comp in slide_data['components']:
+            cx = Inches((comp['x'] - clip_x) / 96.0)
+            cy = Inches((comp['y'] - clip_y) / 96.0)
+            cw = Inches(comp['w'] / 96.0)
+            ch = Inches(comp['h'] / 96.0)
+            try:
+                slide.shapes.add_picture(str(comp['img_path']), cx, cy, width=cw, height=ch)
+            except Exception:
+                pass
+
+        for el in slide_data['elements']:
+            x_px = el['x'] - clip_x
+            y_px = el['y'] - clip_y
+            
+            if x_px < -10 or y_px < -10: continue
+                
+            x = Inches(max(0, x_px) / 96.0)
+            y = Inches(max(0, y_px) / 96.0)
+            w = Inches(max(1, el['w']) / 96.0)
+            h = Inches(max(1, el['h']) / 96.0)
+            
+            try:
+                txBox = slide.shapes.add_textbox(x, y, w, h)
+                tf = txBox.text_frame
+                tf.clear()
+                tf.margin_left = 0
+                tf.margin_top = 0
+                tf.margin_right = 0
+                tf.margin_bottom = 0
+                tf.word_wrap = True
+                
+                if el['vAlign'] == 'middle':
+                    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+                
+                p = tf.paragraphs[0]
+                p.text = el['text']
+
+                # ADDITIVE (§5.10): PowerPoint's substituted font renders large
+                # bold numerals taller than Chromium calculates, bleeding into
+                # tightly-spaced sibling labels. Shrink those specifically.
+                _size_factor = 0.75
+                if el['fontSize'] >= 24 and el['fontWeight']:
+                    _size_factor = 0.68
+
+                # ADDITIVE FIX (fidelity): 1 CSS px maps to exactly 0.75 pt at this
+                # slide scale (1280px -> 13.333in -> 96 px/in), so 0.75 is the
+                # faithful conversion and §5.10's 0.68 makes large bold text ~9%
+                # SMALLER than the source deck — visibly so on slide headers
+                # ("LATEST TIMELINES COMMITTED BY NEC & RAILTEL" exported at
+                # 16.32pt instead of 18pt) and the "Thank You" closer. Under the
+                # rule that the converter must reproduce the final HTML exactly,
+                # shrinking the text is the wrong remedy for an overflow risk.
+                # Restore the exact factor.
+                # NOTE: an earlier version of this fix also widened the textbox to
+                # absorb a taller substituted font. That was reverted — enlarging
+                # the box re-centres centre-aligned text and visibly shifted the
+                # slide headers right. The measured box already comes from
+                # getClientRects() on the real glyphs, so it is left untouched.
+                if _size_factor != 0.75:
+                    _size_factor = 0.75
+                p.font.size = Pt(max(1, el['fontSize'] * _size_factor))
+
+                # ADDITIVE (§5.9)
+                if _contains_emoji(el['text']):
+                    p.font.name = 'Segoe UI Emoji'
+
+                if el['color']:
+                    p.font.color.rgb = RGBColor(*el['color'])
+                p.font.bold = el['fontWeight']
+                
+                if el['textAlign'] == 'center': p.alignment = PP_ALIGN.CENTER
+                elif el['textAlign'] == 'right': p.alignment = PP_ALIGN.RIGHT
+                else: p.alignment = PP_ALIGN.LEFT
+            except Exception:
+                pass
+
+    prs.save(output_file)
+
+async def get_html_resolution(browser, html_content: str):
+    page = await browser.new_page(viewport={"width": 1280, "height": 720})
+    # FIX (§5.6): "load" fires before CDN-injected @font-face rules settle.
+    await page.set_content(html_content, wait_until="networkidle", timeout=60000)
+    await page.evaluate("document.fonts.ready")
+    await _load_icon_fonts(page)
+    await _warn_if_icon_fonts_missing(page)
+    dims = await page.evaluate("""
+        () => {
+            const preferred = document.querySelector('.slide.active') || document.querySelector('.slide') || document.querySelector('.slide-shell') || document.querySelector('#presentation-container') || document.querySelector('#deck');
+            if (preferred) {
+                const rect = preferred.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    return { width: Math.ceil(Math.max(rect.width, 1280)), height: Math.ceil(Math.max(rect.height, 720)) };
+                }
+            }
+            const scrollW = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, document.documentElement.offsetWidth, 1280);
+            const scrollH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, document.documentElement.offsetHeight, 720);
+            return { width: Math.ceil(scrollW), height: Math.ceil(scrollH) };
+        }
+    """)
+    await page.close()
+    return dims
+
+async def force_final_state(page, slide_index: int):
+    await page.evaluate("""
+        (idx) => {
+            if (window.goToSlide) { try { window.goToSlide(idx + 1); } catch(e) {} } 
+            else if (window.goTo) { try { window.goTo(idx + 1); } catch(e) {} } 
+            else {
+                const slides = [...document.querySelectorAll('.slide')];
+                slides.forEach((s, j) => { if (j === idx) s.classList.add('active'); else s.classList.remove('active'); });
+            }
+            if (window.runAnims) { try { window.runAnims(idx); } catch(e) {} }
+            let slides = [...document.querySelectorAll('.slide')];
+            if (slides.length === 0) slides = [...document.querySelectorAll('.slide-shell')];
+            if (slides.length > 0) {
+                slides.forEach((s, j) => {
+                    if (j === idx) {
+                        s.classList.add('active');
+                        s.style.display = ''; s.style.visibility = 'visible'; s.style.opacity = '1'; s.style.pointerEvents = 'all';
+                        s.scrollIntoView({block:'start', inline:'nearest'});
+                    } else {
+                        s.classList.remove('active');
+                        s.style.display = 'none'; s.style.visibility = 'hidden'; s.style.opacity = '0'; s.style.pointerEvents = 'none';
+                    }
+                });
+            }
+
+            const dots = [...document.querySelectorAll('.nav-dots .dot, .dot')];
+            dots.forEach((d, j) => {
+                if (j === idx) d.classList.add('active');
+                else d.classList.remove('active');
+            });
+            const current = slides.length > 0 ? slides[idx] : document.body;
+            if (!current) return;
+
+            const currentCs = getComputedStyle(current);
+            if (currentCs.backgroundAttachment === 'fixed') {
+                current.style.setProperty('background-attachment', 'scroll', 'important');
+            }
+
+            current.querySelectorAll('*').forEach(el => {
+                const cs = getComputedStyle(el);
+                if (cs.display === 'none') el.style.display = '';
+                if (cs.visibility === 'hidden') el.style.visibility = 'visible';
+                if (parseFloat(cs.opacity || '1') === 0) el.style.opacity = '1';
+                if (cs.backgroundAttachment === 'fixed') {
+                    el.style.setProperty('background-attachment', 'scroll', 'important');
+                }
+                el.style.transition = 'none';
+            });
+        }
+    """, slide_index)
+
+async def render_deck_to_file(html_content: str, output_file: str):
+    slide_count = count_slides(html_content)
+    slides_for_output = []
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+            headless=True,
+            executable_path=os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE") or None,
+            args=[
+                "--enable-gpu",
+                "--ignore-gpu-blocklist",
+                "--enable-accelerated-2d-canvas",
+                "--enable-zero-copy",
+                "--use-angle=d3d11",
+            ]
+        )
+            dims = await get_html_resolution(browser, html_content)
+            context = await browser.new_context(viewport={"width": dims["width"], "height": dims["height"]}, device_scale_factor=2)
+
+            # BUG FIX: a non-numeric HTML_CONVERTER_WORKERS value crashed the
+            # whole conversion with an unhandled ValueError before any work ran.
+            try:
+                _workers = int(os.getenv("HTML_CONVERTER_WORKERS", "") or (os.cpu_count() or 1))
+            except (TypeError, ValueError):
+                _workers = os.cpu_count() or 1
+            max_parallel_slides = max(1, min(slide_count, _workers))
+            semaphore = asyncio.Semaphore(max_parallel_slides)
+
+            async def render_slide(i):
+                async with semaphore:
+                    # BUG FIX: the page was only closed on the success path. Any
+                    # exception mid-render (font timeout, screenshot failure)
+                    # left the page open and surfaced without saying which slide
+                    # died. try/finally guarantees cleanup; the re-raise tags
+                    # the slide index for the operator.
+                    page = await context.new_page()
+                    try:
+                        await _render_slide_inner(i, page)
+                    except Exception as exc:
+                        raise RuntimeError(f"slide {i + 1}/{slide_count} failed to render: {exc}") from exc
+                    finally:
+                        try:
+                            await page.close()
+                        except Exception:
+                            pass
+
+            async def _render_slide_inner(i, page):
+                    # FIX (§5.6): "load" races CDN icon fonts.
+                    await page.set_content(html_content, wait_until="networkidle", timeout=60000)
+                    await page.evaluate("document.fonts.ready")
+                    await _load_icon_fonts(page)
+                    await page.wait_for_timeout(300)
+
+                    # §5.5: nav-chrome selector list — hyphenated AND camelCase
+                    # conventions both seen across client decks.
+                    # §5.8: animation-play-state:paused settles keyframes on the
+                    # final frame rather than mid-cycle.
+                    await page.add_style_tag(content="""
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-attachment: scroll !important; }
+                        #dots, #ctr, #counter, #progressBar, .progress-wrap,
+                        div.nav, .nav, .slide-nav, .nav-btn, .nav-dots,
+                        .navBtn, .navBar, #prevBtn, #nextBtn, #slideCount, .slideCount,
+                        [class*="slide-nav"], [class*="nav-btn"], [class*="nav-dot"],
+                        [class*="fullscreen"], [class*="full-screen"],
+                        /* BUG FIX: the deck's own progress bar (#deck-progress) is navigation
+                           chrome and is stripped. NOTE: .page-indicator is deliberately NOT in
+                           this list — it is the printed slide number ("» 4") that belongs to
+                           each slide's content, not navigation, and removing it silently
+                           deleted the page numbering from the deliverable. */
+                        #deck-progress, .deck-progress { display: none !important; }
+                        *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; animation-fill-mode: forwards !important; animation-play-state: paused !important; }
+                    """)
+
+                    await force_final_state(page, i)
+                    await page.wait_for_timeout(2000) 
+    
+                    await page.evaluate("""
+                        () => {
+                            if (window.gsap) { try { window.gsap.globalTimeline.progress(1); } catch(e) {} }
+                            document.body.querySelectorAll('*').forEach(el => {
+                                if (parseFloat(getComputedStyle(el).opacity) === 0) el.style.opacity = '1';
+                            });
+                        }
+                    """)
+
+                    # ADDITIVE (§5.7): automated slide activation doesn't call the
+                    # deck's own nav function, so rAF-driven count-up numbers and
+                    # width-animated bars never fire. Force final values directly.
+                    # No-op on decks without these attributes.
+                    try:
+                        await page.evaluate("""
+                            () => {
+                                document.querySelectorAll('[data-to]').forEach(el => {
+                                    const to = parseFloat(el.getAttribute('data-to'));
+                                    if (Number.isNaN(to)) return;
+                                    const prefix = el.getAttribute('data-prefix') || '';
+                                    const suffix = el.getAttribute('data-suffix') || '';
+                                    const format = el.getAttribute('data-format');
+                                    const val = Math.round(to);
+                                    const text = format === 'comma' ? val.toLocaleString('en-IN') : String(val);
+                                    el.textContent = prefix + text + suffix;
+                                });
+                                document.querySelectorAll('[data-w]').forEach(el => {
+                                    const w = el.getAttribute('data-w');
+                                    if (w !== null) el.style.setProperty('width', w + '%', 'important');
+                                });
+                            }
+                        """)
+                    except Exception:
+                        pass
+
+                    box = await page.evaluate("""
+                        () => {
+                            const active = document.querySelector('.slide.active') || document.querySelector('.slide-shell.active') || document.querySelector('.slide') || document.querySelector('.slide-shell') || document.body;
+                            const rect = active.getBoundingClientRect();
+                            return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+                        }
+                    """)
+                    
+                    bg_x = max(0, math.floor(box["x"] - 2) if box else 0)
+                    bg_y = max(0, math.floor(box["y"] - 2) if box else 0)
+                    bg_w = max(1, math.ceil(box["width"] + 4) if box else dims["width"])
+                    bg_h = max(1, math.ceil(box["height"] + 4) if box else dims["height"])
+    
+                    bg_x = min(bg_x, dims["width"] - 1)
+                    bg_y = min(bg_y, dims["height"] - 1)
+                    bg_w = min(bg_w, dims["width"] - bg_x)
+                    bg_h = min(bg_h, dims["height"] - bg_y)
+                    clip = {"x": bg_x, "y": bg_y, "width": bg_w, "height": bg_h}
+    
+                    # CRITICAL FIX: Unified Text Engine - Ignores inline elements and extracts full block text
+                    text_elements = await page.evaluate("""
+                        () => {
+                            const elements = [];
+                            const rgbToHex = (rgba) => {
+                                if (!rgba) return null;
+                                const match = rgba.match(/^rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
+                                return match ? [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])] : null;
+                            };
+                            
+                            document.body.querySelectorAll('*').forEach(node => {
+                                const style = window.getComputedStyle(node);
+                                if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return;
+                                
+                                if (style.display === 'inline') return;
+    
+                                const tag = node.tagName.toLowerCase();
+                                if (['script', 'style', 'svg', 'i', 'img'].includes(tag)) return;
+                                if (node.classList && node.classList.contains('material-icons')) return;
+                                if (node.closest && node.closest('.material-icons, [data-ppt-icon]')) return;
+    
+                                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                                let hasValidRect = false;
+                                // Trailing edge of the previous inline run, used to detect a
+                                // CSS-produced gap between adjacent runs (see extractTextAndBounds).
+                                let _lastRunRight = null, _lastRunTop = null, _lastRunEndedSpace = false;
+                                // BUG FIX (see textOwnerStyle below): remember which element each
+                                // contributing text node actually belongs to.
+                                const textOwners = [];
+
+                                const extractTextAndBounds = (element) => {
+                                    let localText = "";
+                                    for (let child of element.childNodes) {
+                                        if (child.nodeType === 3) { 
+                                            const content = child.nodeValue.replace(/\\s+/g, ' '); 
+                                            if (content !== ' ' && content !== '') {
+                                                // BUG FIX: adjacent inline runs are concatenated
+                                                // with nothing between them, so markup like
+                                                //   <b>Field Cameras</b><span>3,099 / 9,989</span>
+                                                // exported as "Field Cameras3,099 / 9,989". The
+                                                // browser shows a gap because .plabel span carries
+                                                // margin-left:4px — a layout property with no
+                                                // character to carry it across. If the incoming run
+                                                // starts to the right of where the previous one
+                                                // ended, on the same line, re-create that gap with
+                                                // a single space so the exported string reads the
+                                                // way the slide does.
+                                                // NOTE: localText is local to each recursive call,
+                                                // so gap state is tracked in the shared
+                                                // _lastRunRight/_lastRunTop/_lastRunEndedSpace vars.
+                                                let _gapSpace = "";
+                                                if (_lastRunRight !== null && !_lastRunEndedSpace &&
+                                                    !/^\\s/.test(content)) {
+                                                    const _r = document.createRange();
+                                                    _r.selectNode(child);
+                                                    const _first = _r.getClientRects()[0];
+                                                    if (_first &&
+                                                        Math.abs(_first.top - _lastRunTop) < 2 &&
+                                                        _first.left - _lastRunRight > 1.5) {
+                                                        _gapSpace = " ";
+                                                    }
+                                                }
+                                                _lastRunEndedSpace = /\\s$/.test(content);
+                                                localText += _gapSpace + content;
+                                                textOwners.push({ el: element, len: content.trim().length });
+                                                const range = document.createRange();
+                                                range.selectNode(child);
+                                                const rects = range.getClientRects();
+                                                for (let r of rects) {
+                                                    if (r.width > 0 && r.height > 0) {
+                                                        minX = Math.min(minX, r.left);
+                                                        minY = Math.min(minY, r.top);
+                                                        maxX = Math.max(maxX, r.right);
+                                                        maxY = Math.max(maxY, r.bottom);
+                                                        hasValidRect = true;
+                                                        _lastRunRight = r.right;
+                                                        _lastRunTop = r.top;
+                                                    }
+                                                }
+                                            }
+                                        } else if (child.nodeType === 1) { 
+                                            const childTag = child.tagName.toLowerCase();
+                                            if (childTag === 'br') {
+                                                localText += '\\n';
+                                            } else if (!['script', 'style', 'svg', 'i', 'img'].includes(childTag)) {
+                                                if (child.classList && child.classList.contains('material-icons')) continue;
+                                                if (child.closest && child.closest('.material-icons, [data-ppt-icon]')) continue;
+                                                const childStyle = window.getComputedStyle(child);
+                                                if (childStyle.display === 'inline') {
+                                                    localText += extractTextAndBounds(child);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    return localText;
+                                };
+    
+                                let textStr = extractTextAndBounds(node).trim();
+                                if (!hasValidRect || !textStr) return;
+
+                                // BUG FIX: font size / weight / colour were read from the block
+                                // element being walked, but its text often comes entirely from an
+                                // INLINE descendant with a different font. e.g.
+                                //   <div class="red">            <- 16px, the walked node
+                                //     <b>CRITICAL RISK</b>       <- 8px, what actually renders
+                                //     <h4>..</h4><p>..</p>       <- block, extracted separately
+                                // Inline children are absorbed into the parent's text, so the
+                                // label was written at 16*0.75=12pt into a box measured for the
+                                // 8px rendering — text at 2x its size overflowing a box a third
+                                // its height, spilling over every neighbouring label and reading
+                                // as doubled/shadowed text. Attribute the run to the element that
+                                // actually owns the text (dominant one by character count).
+                                // Measured on Meity Stage-4: 116 mis-sized textboxes, up to 2x.
+                                let textOwnerStyle = style;
+                                if (textOwners.length) {
+                                    let best = textOwners[0];
+                                    for (const o of textOwners) if (o.len > best.len) best = o;
+                                    if (best.el !== node) textOwnerStyle = window.getComputedStyle(best.el);
+                                }
+
+                                const tt = textOwnerStyle.textTransform;
+                                if (tt === 'uppercase') textStr = textStr.toUpperCase();
+                                else if (tt === 'lowercase') textStr = textStr.toLowerCase();
+                                else if (tt === 'capitalize') textStr = textStr.replace(/\\b\\w/g, c => c.toUpperCase());
+    
+                                const isFlexCenter = style.display === 'flex' && style.alignItems === 'center';
+    
+                                // TARGETED FIX: Downloading & Retrieval top process only.
+                                // Font Awesome icons render slightly taller in PowerPoint than in
+                                // Chromium. Move only the editable labels below those icons; do not
+                                // alter cards, header, footer, or any other slide.
+                                const isSlide7Process = Boolean(node.closest && node.closest('#slide-7 .sop-process'));
+                                const slide7ProcessOffset = isSlide7Process
+                                    ? (tag === 'b' ? 10 : (tag === 'small' ? 5 : 0))
+                                    : 0;
+
+                                elements.push({
+                                    text: textStr, 
+                                    x: minX, 
+                                    y: minY + slide7ProcessOffset, 
+                                    w: Math.max(1, maxX - minX + 2), 
+                                    h: Math.max(1, maxY - minY + 2),
+                                    // BUG FIX: sourced from textOwnerStyle, not the container.
+                                    fontSize: parseFloat(textOwnerStyle.fontSize) || 12, 
+                                    color: rgbToHex(textOwnerStyle.color),
+                                    fontWeight: textOwnerStyle.fontWeight === 'bold' || parseInt(textOwnerStyle.fontWeight) >= 600,
+                                    textAlign: style.textAlign || 'left',
+                                    vAlign: isFlexCenter ? 'middle' : 'top'
+                                });
+                            });
+                            return elements;
+                        }
+                    """)
+
+                    # ADDITIVE (§5.11): drop overlapping duplicate labels — the
+                    # same string emitted by both a wrapper and its child within
+                    # 25px, which stacks two textboxes and reads as bold-ghosting.
+                    # BUG FIX: the original substring rule (n1.includes(n2)) is
+                    # unsafe for short/numeric strings — a nearby "+16" deleted the
+                    # real value "163", and a "15" deleted "15,000", silently
+                    # dropping 25 figures from the two Way-Forward plan slides.
+                    # Containment now requires a reasonably long, non-numeric
+                    # substring; exact matches still dedup as before.
+                    try:
+                        text_elements = await page.evaluate("""
+                            (all) => {
+                                const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                const out = [];
+                                for (const el of all) {
+                                    const isDup = out.some(ex => {
+                                        if (Math.abs(ex.x - el.x) > 25 || Math.abs(ex.y - el.y) > 25) return false;
+                                        const n1 = norm(ex.text), n2 = norm(el.text);
+                                        if (!n1 || !n2) return false;
+                                        if (n1 === n2) return true;
+                                        const shorter = n1.length <= n2.length ? n1 : n2;
+                                        const longer  = n1.length <= n2.length ? n2 : n1;
+                                        // Never let a numeric fragment swallow a different number.
+                                        if (/^[0-9]+$/.test(shorter)) return false;
+                                        // Require a substantial label before containment counts.
+                                        if (shorter.length < 6) return false;
+                                        return longer.includes(shorter);
+                                    });
+                                    if (!isDup) out.push(el);
+                                }
+                                return out;
+                            }
+                        """, text_elements)
+                    except Exception:
+                        pass
+
+                    # Used only for the Slide 3 text/icon-container guard below.
+                    await page.evaluate("idx => { window.__pptSlideIndex = idx; }", i)
+                    await page.evaluate("""
+                        () => {
+                            const isCard = (el) => {
+                                const tag = el.tagName.toUpperCase();
+                                // FIX: table cells/rows carry CSS border-right/border-bottom purely
+                                // for grid-line styling, which satisfied the border-based card check
+                                // below and caused each <td> to be screenshotted as its own "card".
+                                // Any icon badge (e.g. .mini-icon, itself a legitimately-detected
+                                // small card) nested inside that <td> then got baked into the cell's
+                                // own background image AND rendered again as its separate layer,
+                                // producing a double-rendered artifact right at the icon/text boundary.
+                                if (['BODY', 'HTML', 'MAIN', 'SECTION', 'HEADER', 'FOOTER', 'SVG', 'SCRIPT', 'STYLE', 'IMG', 'I', 'TD', 'TH', 'TR', 'TABLE', 'THEAD', 'TBODY', 'TFOOT'].includes(tag)) return false;
+    
+                                const excludeClasses = ['slide', 'content-wrap', 'bg-wrap', 'hero-grid', 'hero-split', 'infographic-board', 'outcomes-grid', 'close-layout', 'story-ribbon', 'metric-stack', 'nav', 'top-right'];
+                                for (let cls of excludeClasses) { if (el.classList.contains(cls)) return false; }
+                                if (el.className && typeof el.className === 'string' && el.className.includes('bg-')) return false;
+    
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width <= 10 || rect.height <= 10) return false;
+                                // FIX (§5.1): both dimensions must be huge to count as a
+                                // structural wrapper. || wrongly excluded wide-but-short
+                                // elements (timeline tables, header bars), baking them into
+                                // the background instead of extracting them as cards.
+                                if (rect.width >= window.innerWidth * 0.90 && rect.height >= window.innerHeight * 0.90) return false;
+    
+                                const style = window.getComputedStyle(el);
+                                if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return false;
+    
+                                const explicitClasses = [
+                                    'ribbon-card', 'metric', 'hero-side', 'issue-card', 'insight-panel',
+                                    'kpi-box', 'center-hub', 'spoke', 'narrative-panel', 'checkpoint',
+                                    'outcome-board', 'outcome-row', 'data-source', 'central-engine',
+                                    'kpi-card', 'phase', 'ey-tag', 'page-chip', 'silo-pillar', 'hub-center', 'counter'
+                                ];
+    
+                                let isExplicit = false;
+                                for (let cls of explicitClasses) { if (el.classList.contains(cls)) isExplicit = true; }
+                                if (tag === 'BUTTON') isExplicit = true; 
+                                if (isExplicit) return true;
+    
+                                const hasBg = (style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent') || (style.backgroundImage !== 'none' && style.backgroundImage !== 'initial');
+                                // FIX (§5.2): check all four sides — a card bordered only
+                                // on its left or bottom was missed by the top-only test.
+                                const hasBorder = ['Top','Right','Bottom','Left']
+                                    .some(s => parseFloat(style['border' + s + 'Width']) > 0);
+                                const hasShadow = style.boxShadow !== 'none' && style.boxShadow !== '';
+                                return hasBg || hasBorder || hasShadow;
+                            };
+    
+                            const cards = Array.from(document.body.querySelectorAll('*')).filter(isCard);
+                            // CHANGE (option B, approved): previously only TOP-LEVEL cards were
+                            // kept — any card nested inside another was discarded, so the parent
+                            // was captured as one flat image swallowing all its children. That
+                            // made e.g. slide 5's .timeline-table-wrap a single un-editable
+                            // block containing 41 boxes. Tag nested cards too.
+                            //
+                            // CHANGE (option B-prime, approved): EXCEPT absolutely-positioned
+                            // nested cards. Once un-nested, siblings are painted in document
+                            // order, which ignores CSS stacking — and absolutely-positioned
+                            // decorations (.flow-dot, .flow-icon, .phase-num, .impact-icon,
+                            // .thankyou-mini-wheel) overlap by nature, so they landed on top of
+                            // artwork the browser paints above them (the slide 6/7 arrowhead was
+                            // covered by its own animated dot). Leaving them in the parent's
+                            // image preserves the browser's paint order exactly. In-flow nested
+                            // cards do not overlap and un-nest safely: 192 of 233 here.
+                            const keptCards = cards.filter(c => {
+                                let p = c.parentElement, hasCardAncestor = false;
+                                while (p && p !== document.body) {
+                                    if (cards.includes(p)) { hasCardAncestor = true; break; }
+                                    p = p.parentElement;
+                                }
+                                if (!hasCardAncestor) return true;          // top-level: always
+                                const pos = window.getComputedStyle(c).position;
+                                return pos !== 'absolute' && pos !== 'fixed';
+                            });
+                            // Document order, so a parent always precedes its descendants, which
+                            // gives the correct back-to-front paint order for free. The parent's
+                            // own capture hides its tagged nested cards (see _isolate), so
+                            // nothing is drawn twice; untagged absolute children stay visible in
+                            // the parent image, which is exactly what we want.
+                            keptCards.forEach((c, i) => c.setAttribute('data-ppt-card', i));
+                        }
+                    """)
+    
+                    # FIX: Detect and isolate icon elements within cards
+                    await page.evaluate("""
+                        () => {
+                            const isIconElement = (el) => {
+                                const tag = el.tagName.toLowerCase();
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width <= 0 || rect.height <= 0) return false;
+                                if (el.classList && el.classList.contains('material-icons')) return true;
+                                if (tag === 'i') return true;
+                                if (tag === 'svg' && rect.width <= 150 && rect.height <= 150) return true;
+                                if (tag === 'img' && rect.width <= 100 && rect.height <= 100) return true;
+                                return false;
+                            };
+    
+                            const isIconContainer = (el) => {
+                                if (el.hasAttribute('data-ppt-card')) return false;
+                                // BUG FIX: this guard was gated to slide indices 2/3/6 — values
+                                // hand-tuned for an earlier deck. An element holding an icon PLUS
+                                // its own text (e.g. <span class="status-pill"><i/>Ongoing</span>,
+                                // .metric-status, legend chips) was therefore classified as an
+                                // "icon" on every other slide. Text inside [data-ppt-icon] is
+                                // skipped by the transparent-text pass, so the label got BAKED
+                                // into the icon screenshot while still being emitted as an
+                                // editable textbox — rendering the word twice, overlapping
+                                // (observed: "ONGOING" over "Ongoing" on the timeline table).
+                                // The rule is deck-independent: an element with direct text is
+                                // never an icon. Measured on Meity Stage-4: 33 doubled labels
+                                // across 8 slides with the gate, 0 without it.
+                                const hasDirectText = Array.from(el.childNodes).some(n =>
+                                    n.nodeType === Node.TEXT_NODE && n.nodeValue.trim().length > 0
+                                );
+                                if (hasDirectText) return false;
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width < 10 || rect.height < 10 || rect.width > 150 || rect.height > 150) return false;
+                                const visibleChildren = Array.from(el.children).filter(c => {
+                                    const cs = getComputedStyle(c);
+                                    return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0;
+                                });
+                                if (visibleChildren.length === 0) return false;
+                                return visibleChildren.every(c => isIconElement(c));
+                            };
+    
+                            document.querySelectorAll('[data-ppt-card]').forEach(card => {
+                                card.querySelectorAll('*').forEach(el => {
+                                    if (isIconContainer(el)) {
+                                        el.setAttribute('data-ppt-icon', '');
+                                    }
+                                });
+                                card.querySelectorAll('i, svg, .material-icons').forEach(el => {
+                                    if (isIconElement(el) && !el.closest('[data-ppt-icon]')) {
+                                        el.setAttribute('data-ppt-icon', '');
+                                    }
+                                });
+                            });
+    
+                            document.querySelectorAll('[data-ppt-icon]').forEach((el, i) => {
+                                el.setAttribute('data-ppt-icon', i);
+                            });
+
+                            // BUG FIX: cards are clipped with a small fixed pad, so any
+                            // box-shadow wider than that pad gets sliced off mid-gradient. The
+                            // patch is opaque, so pasting it over the background (where the card
+                            // was hidden, shadow and all) leaves a hard rectangular edge — the
+                            // grey box users see around the Delhi Police logo and the coloured
+                            // icon tiles. Measured on this deck: shadows extend 26-68px against
+                            // an 8px pad, so every shadowed card was clipped.
+                            // Pad by the real shadow extent instead, capped by the clearance to
+                            // the nearest other capture region so an enlarged patch can never
+                            // paint over a neighbour. Elements without a shadow are unaffected,
+                            // which keeps the §5.4 tiny-icon-badge fix intact.
+                            // BUG FIX (2nd pass): this originally covered cards only. The header
+                            // Delhi Police logo is a 54px .dp-logo-slot with a 20px shadow that
+                            // gets captured on the ICON path (4px pad), so it kept its grey
+                            // clipped-shadow box after the card fix. Icons are included here now.
+                            const padEls = Array.from(document.querySelectorAll('[data-ppt-card], [data-ppt-icon]'));
+                            padEls.forEach((c, i) => {
+                                const bs = window.getComputedStyle(c).boxShadow;
+                                let ext = 0;
+                                if (bs && bs !== 'none' && bs.indexOf('inset') === -1) {
+                                    const re = /(-?[\\d.]+)px\\s+(-?[\\d.]+)px(?:\\s+(-?[\\d.]+)px)?(?:\\s+(-?[\\d.]+)px)?/g;
+                                    let m;
+                                    while ((m = re.exec(bs)) !== null) {
+                                        const ox = Math.abs(parseFloat(m[1]) || 0);
+                                        const oy = Math.abs(parseFloat(m[2]) || 0);
+                                        const bl = parseFloat(m[3]) || 0;
+                                        const sp = parseFloat(m[4]) || 0;
+                                        ext = Math.max(ext, Math.max(ox, oy) + bl + Math.max(0, sp));
+                                    }
+                                }
+                                if (ext <= 0) { c.setAttribute('data-ppt-pad', '0'); return; }
+                                // Captures are isolated and alpha-composited, so an enlarged
+                                // patch is transparent wherever a neighbour used to be. The old
+                                // neighbour-clearance cap is therefore unnecessary — and it was
+                                // the thing still slicing the big cover-card and hub-circle
+                                // shadows into visible rectangles, because adjacent cards sit
+                                // ~15px apart while their shadows reach 26-68px. Pad by the
+                                // full shadow extent.
+                                c.setAttribute('data-ppt-pad', String(ext));
+                            });
+                        }
+                    """)
+    
+                    # BUG FIX (layout shift): the TreeWalker span-wrap below inserts a
+                    # DOM node around every text node. Inserting ANY element changes
+                    # inline layout on some decks — on Meity Stage-4 slide 10 the
+                    # .plan-sub flex header collapsed from 44px to 22px (its two flex
+                    # items stopped wrapping), which lifted the whole plan table 22px.
+                    # Cards are screenshotted after this pass, so the captured images
+                    # were of a shifted layout: the dark header row landed at y=149
+                    # instead of y=171 and the cream contingency cell rode up over it.
+                    # Tested with the wrapper at display:inline, display:contents and
+                    # unset — all three shift, so the wrapper's display is irrelevant;
+                    # the insertion itself is the problem.
+                    #
+                    # Hide the text with CSS instead: a blanket transparent colour is
+                    # guaranteed layout-neutral because it touches no boxes. The
+                    # original reason for wrapping was to leave ::before/::after
+                    # content (status dots, bullet icons) at their real colour, so
+                    # those are enumerated first and exempted by generated rules.
+                    # ADDITIVE: the wrap below is left intact and simply skipped.
+                    _css_text_hidden = False
+                    try:
+                        await page.evaluate("""
+                            () => {
+                                const rules = [];
+                                let k = 0;
+                                document.body.querySelectorAll('*').forEach(el => {
+                                    let tagged = false;
+                                    for (const pe of ['::before', '::after']) {
+                                        const cs = window.getComputedStyle(el, pe);
+                                        if (!cs.content || cs.content === 'none' || cs.content === 'normal') continue;
+                                        if (!tagged) { el.setAttribute('data-ppt-pe', String(k)); tagged = true; }
+                                        rules.push('[data-ppt-pe="' + k + '"]' + pe +
+                                                   '{color:' + cs.color + ' !important;' +
+                                                   '-webkit-text-fill-color:' + cs.color + ' !important;}');
+                                    }
+                                    if (tagged) k++;
+                                });
+                                const st = document.createElement('style');
+                                st.id = '__pptTextHide';
+                                st.textContent =
+                                    '*{color:transparent !important;-webkit-text-fill-color:transparent !important;}'
+                                    + rules.join('');
+                                document.head.appendChild(st);
+                            }
+                        """)
+                        _css_text_hidden = True
+                    except Exception:
+                        _css_text_hidden = False
+
+                    # CRITICAL FIX: Safe text hiding using TreeWalker to prevent icons from disappearing
+                    if not _css_text_hidden:
+                      await page.evaluate("""
+                          () => {
+                              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+                              const textNodes = [];
+                            
+                              while (walker.nextNode()) {
+                                  const parent = walker.currentNode.parentElement || walker.currentNode.parentNode;
+                                  const parentTag = parent.tagName ? parent.tagName.toLowerCase() : '';
+                                  if (['script', 'style', 'noscript'].includes(parentTag)) continue;
+                                  if (parent.closest && parent.closest('[data-ppt-icon], .material-icons')) continue;
+                                  if (walker.currentNode.nodeValue.trim().length > 0) {
+                                      textNodes.push(walker.currentNode);
+                                  }
+                              }
+                            
+                              textNodes.forEach(node => {
+                                  const span = document.createElement('span');
+                                  span.style.setProperty('color', 'transparent', 'important');
+                                  span.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+                                  // BUG FIX: without this the wrapper generates its own box. Inside
+                                  // a flex/grid container that box is blockified into a separate
+                                  // flex item, which reflows the parent — a chip like
+                                  // <span class="chip"><i/>O&M</span> wrapped onto two lines,
+                                  // dropping its icon 8.5px down and 16px across. Icon geometry is
+                                  // measured AFTER this pass, so the icon was then screenshotted
+                                  // and placed at the reflowed position, landing on top of its own
+                                  // label. display:contents makes the wrapper generate no box at
+                                  // all while still passing the transparent colour down to the
+                                  // text, so layout is untouched (measured: 8.5px shift -> 0.2px).
+                                  span.style.setProperty('display', 'contents', 'important');
+                                  node.parentNode.insertBefore(span, node);
+                                  span.appendChild(node);
+                              });
+                          }
+                      """)
+    
+                    # Hide icons before capturing card screenshots (preserves layout space)
+                    await page.evaluate("""
+                        () => {
+                            document.querySelectorAll('[data-ppt-icon]').forEach(el => {
+                                el.style.setProperty('visibility', 'hidden', 'important');
+                            });
+                        }
+                    """)
+    
+                    component_elements = []
+                    card_count = await page.locator('[data-ppt-card]').count()
+    
+                    COMPONENT_CLIP_PAD = 8
+                    # Upper bound on shadow-driven padding (see data-ppt-pad).
+                    MAX_SHADOW_CLIP_PAD = 96
+    
+                    for j in range(card_count):
+                        loc = page.locator(f'[data-ppt-card="{j}"]')
+                        cbox = await loc.bounding_box()
+                        
+                        if cbox and cbox['width'] > 0 and cbox['height'] > 0:
+                            raw_left = cbox['x']
+                            raw_top = cbox['y']
+                            raw_right = cbox['x'] + cbox['width']
+                            raw_bottom = cbox['y'] + cbox['height']
+    
+                            # FIX: fixed 8px padding nearly doubles the footprint of tiny
+                            # inline icon-badges (e.g. 17x17px .mini-icon elements used right
+                            # before inline text in table cells), and the oversized padded
+                            # image then visually overlaps the start of the adjacent text
+                            # (observed: OCR-garbled "$B." / "@::::" artifacts right where a
+                            # small icon meets its label). Clamp padding to a fraction of the
+                            # element's own size so small elements get proportionally less.
+                            pad = min(COMPONENT_CLIP_PAD, max(1, min(cbox['width'], cbox['height']) * 0.15))
+
+                            # BUG FIX (companion to data-ppt-pad above): extend the pad to
+                            # contain the card's box-shadow so it fades out inside the patch
+                            # instead of being sliced into a visible rectangle. Already capped
+                            # in JS by the clearance to the nearest neighbouring card; capped
+                            # again here so one huge shadow can't produce a giant image.
+                            try:
+                                shadow_pad = float(await loc.get_attribute('data-ppt-pad') or 0)
+                            except (TypeError, ValueError):
+                                shadow_pad = 0.0
+                            if shadow_pad > pad:
+                                pad = min(shadow_pad, MAX_SHADOW_CLIP_PAD)
+
+                            left = max(0, raw_left - pad)
+                            top = max(0, raw_top - pad)
+                            right = min(dims['width'], raw_right + pad)
+                            bottom = min(dims['height'], raw_bottom + pad)
+    
+                            cw = right - left
+                            ch = bottom - top
+    
+                            if cw <= 0 or ch <= 0:
+                                continue
+    
+                            cx = math.floor(left)
+                            cy = math.floor(top)
+                            cw = math.ceil(cw)
+                            ch = math.ceil(ch)
+    
+                            if cx + cw > dims['width']:
+                                cw = max(1, dims['width'] - cx)
+                            if cy + ch > dims['height']:
+                                ch = max(1, dims['height'] - cy)
+                            
+                            c_clip = {"x": cx, "y": cy, "width": cw, "height": ch}
+                            c_img_path = temp_dir / f"comp_{i}_{j}.png"
+                            
+                            try:
+                                # Isolate so omit_background actually yields alpha.
+                                await _isolate(page, f'[data-ppt-card="{j}"]', pad, hide_nested=True)
+                                try:
+                                    await page.screenshot(path=str(c_img_path), clip=c_clip, omit_background=True)
+                                finally:
+                                    await _restore(page)
+                                component_elements.append({
+                                    'img_path': c_img_path,
+                                    'x': cx, 'y': cy, 'w': cw, 'h': ch
+                                })
+                            except Exception:
+                                pass 
+    
+                    # Restore icons and capture them as separate transparent components
+                    await page.evaluate("""
+                        () => {
+                            document.querySelectorAll('[data-ppt-icon]').forEach(el => {
+                                el.style.setProperty('visibility', 'visible', 'important');
+                            });
+                        }
+                    """)
+    
+                    ICON_CLIP_PAD = 4
+                    icon_count = await page.locator('[data-ppt-icon]').count()
+                    for k in range(icon_count):
+                        loc = page.locator(f'[data-ppt-icon="{k}"]')
+                        ibox = await loc.bounding_box()
+    
+                        if ibox and ibox['width'] > 0 and ibox['height'] > 0:
+                            # FIX: same proportional-padding fix as card clipping above —
+                            # tiny glyph-sized icons (e.g. 8px font-awesome icons inside a
+                            # .mini-icon badge) shouldn't get a flat 4px pad on all sides.
+                            ipad = min(ICON_CLIP_PAD, max(1, min(ibox['width'], ibox['height']) * 0.2))
+
+                            # BUG FIX: honour the shadow-aware pad here as well, so a shadowed
+                            # icon container (e.g. the 54px .dp-logo-slot carrying a 20px
+                            # shadow) doesn't get its shadow sliced into a grey rectangle.
+                            try:
+                                icon_shadow_pad = float(await loc.get_attribute('data-ppt-pad') or 0)
+                            except (TypeError, ValueError):
+                                icon_shadow_pad = 0.0
+                            if icon_shadow_pad > ipad:
+                                ipad = min(icon_shadow_pad, MAX_SHADOW_CLIP_PAD)
+                            left = max(0, ibox['x'] - ipad)
+                            top = max(0, ibox['y'] - ipad)
+                            right = min(dims['width'], ibox['x'] + ibox['width'] + ipad)
+                            bottom = min(dims['height'], ibox['y'] + ibox['height'] + ipad)
+    
+                            iw = right - left
+                            ih = bottom - top
+                            if iw <= 0 or ih <= 0:
+                                continue
+    
+                            ix = math.floor(left)
+                            iy = math.floor(top)
+                            iw = math.ceil(iw)
+                            ih = math.ceil(ih)
+    
+                            if ix + iw > dims['width']:
+                                iw = max(1, dims['width'] - ix)
+                            if iy + ih > dims['height']:
+                                ih = max(1, dims['height'] - iy)
+    
+                            i_clip = {"x": ix, "y": iy, "width": iw, "height": ih}
+                            i_img_path = temp_dir / f"icon_{i}_{k}.png"
+    
+                            try:
+                                # Isolate so omit_background actually yields alpha.
+                                await _isolate(page, f'[data-ppt-icon="{k}"]', ipad)
+                                try:
+                                    await page.screenshot(path=str(i_img_path), clip=i_clip, omit_background=True)
+                                finally:
+                                    await _restore(page)
+                                component_elements.append({
+                                    'img_path': i_img_path,
+                                    'x': ix, 'y': iy, 'w': iw, 'h': ih
+                                })
+                            except Exception:
+                                pass
+    
+                    await page.evaluate("""
+                        () => {
+                            document.querySelectorAll('[data-ppt-card]').forEach(el => {
+                                el.style.setProperty('visibility', 'hidden', 'important');
+                            });
+                            // BUG FIX: icons were restored with an inline
+                            // "visibility: visible !important" for their own capture
+                            // pass and never re-hidden. Since an explicit
+                            // visibility:visible on a descendant overrides the hidden
+                            // ancestor card, every icon was ALSO baked into the
+                            // "clean" background screenshot — leaving a ghost copy
+                            // behind whenever the icon shape is moved in PowerPoint,
+                            // and visibly doubling icons on border-only/transparent
+                            // cards. Re-hide them before the background capture.
+                            document.querySelectorAll('[data-ppt-icon]').forEach(el => {
+                                el.style.setProperty('visibility', 'hidden', 'important');
+                            });
+                        }
+                    """)
+    
+                    bg_img_path = temp_dir / f"bg_slide_{i+1}.png"
+                    await page.screenshot(path=str(bg_img_path), clip=clip)
+    
+                    slides_for_output.append({
+                        'bg_img_path': bg_img_path,
+                        'width': bg_w, 'height': bg_h,
+                        'elements': text_elements, 
+                        'components': component_elements,
+                        'clip_x': bg_x, 'clip_y': bg_y
+                    })
+                    slides_for_output[-1]["_slide_index"] = i
+
+            await asyncio.gather(*(render_slide(i) for i in range(slide_count)))
+            slides_for_output.sort(key=lambda item: item.pop("_slide_index"))
+
+            await context.close()
+            await browser.close()
+
+        build_layered_pptx(slides_for_output, output_file)
+
+async def generate_pptx(html_content: str, source_filename: str | None = None, original_filename: str | None = None) -> str:
+    """Generate PPTX using original uploaded file name when provided."""
+    input_name = source_filename or original_filename
+    file_name = safe_pptx_filename(input_name)
+    output_path = unique_output_path(file_name)
+    await render_deck_to_file(html_content, str(output_path))
+    return str(output_path)
