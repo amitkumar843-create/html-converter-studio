@@ -136,6 +136,15 @@ _LOAD_ICON_FONTS_JS = """
             '400 1px "Phosphor-Fill"', '400 1px "Phosphor-Regular"',
             '300 1px "Phosphor-Light"', '400 1px "Phosphor-Thin"',
             '400 1px "Phosphor-Duotone"',
+            // NOTE: hand-synced duplicate of the same constant in
+            // converter_pptx.py (PDF rendering has no icon/shape detection
+            // pipeline of its own — see that file for why — but shares this
+            // font-preload race-condition fix). Extracting a shared module is
+            // a reasonable fast-follow if this list needs to grow again.
+            '400 1px "bootstrap-icons"',
+            '400 1px "Material Symbols Outlined"', '400 1px "Material Symbols Rounded"',
+            '400 1px "Material Symbols Sharp"',
+            '400 1px "remixicon"',
         ];
         await Promise.all(families.map(f => document.fonts.load(f).catch(() => {})));
         await document.fonts.ready;

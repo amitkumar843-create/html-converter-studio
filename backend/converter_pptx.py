@@ -43,6 +43,13 @@ _LOAD_ICON_FONTS_JS = """
             '400 1px "Phosphor-Fill"', '400 1px "Phosphor-Regular"',
             '300 1px "Phosphor-Light"', '400 1px "Phosphor-Thin"',
             '400 1px "Phosphor-Duotone"',
+            // ADDITIVE: named-library fallback for icon fonts beyond FA/Phosphor.
+            // Kept as a named list for speed/accuracy; the generic glyph-font
+            // heuristic in isIconElement (see below) catches packs not listed here.
+            '400 1px "bootstrap-icons"',
+            '400 1px "Material Symbols Outlined"', '400 1px "Material Symbols Rounded"',
+            '400 1px "Material Symbols Sharp"',
+            '400 1px "remixicon"',
         ];
         await Promise.all(families.map(f => document.fonts.load(f).catch(() => {})));
         await document.fonts.ready;
@@ -176,22 +183,50 @@ _ICON_FONT_CHECK_JS = """
         // whose glyph never arrived collapses to a zero-sized box (or renders
         // the literal codepoint as tofu).
         const sel = 'i[class*="fa-"], i.fa, i.fas, i.far, i.fab,'
-                  + ' i[class*="ph-"], i.ph, span[class*="ph-"], .material-icons';
+                  + ' i[class*="ph-"], i.ph, span[class*="ph-"],'
+                  // ADDITIVE: named-library fallback beyond FA/Phosphor.
+                  + ' i[class*="bi-"], i.bi, span[class*="bi-"],'
+                  + ' i[class*="ri-"], i.ri, span[class*="ri-"],'
+                  + ' .material-icons, .material-symbols-outlined,'
+                  + ' .material-symbols-rounded, .material-symbols-sharp';
         let nodes = [];
         try { nodes = Array.from(document.querySelectorAll(sel)); } catch (e) { return []; }
-        if (!nodes.length) return [];
-        let checked = 0, blank = 0;
-        for (const el of nodes) {
+        let results = [];
+        if (nodes.length) {
+            let checked = 0, blank = 0;
+            for (const el of nodes) {
+                const cs = getComputedStyle(el);
+                if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+                checked++;
+                const r = el.getBoundingClientRect();
+                if (r.width < 1 || r.height < 1) blank++;
+            }
+            // A few legitimately-hidden icons are normal; a majority is a font failure.
+            if (checked && blank / checked >= 0.5) {
+                results.push(blank + ' of ' + checked + ' icon elements render with no glyph');
+            }
+        }
+
+        // ADDITIVE: broader shape/icon diagnostic, independent of the font-glyph
+        // check above. A 0-size svg/img/icon-class/mask-image element usually
+        // means missing width/height/viewBox (or a bad mask URL) in the source
+        // HTML — the browser never painted anything, so there is no pixel data
+        // for the converter to recover. Not majority-gated: even one such
+        // element is unusual enough to be worth a log line.
+        const shapeSel = 'svg, img, [class*="icon" i], [style*="mask-image"], [class*="material-symbols"]';
+        let shapeNodes = [];
+        try { shapeNodes = Array.from(document.querySelectorAll(shapeSel)); } catch (e) { shapeNodes = []; }
+        let shapeBlank = 0;
+        for (const el of shapeNodes) {
             const cs = getComputedStyle(el);
             if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-            checked++;
             const r = el.getBoundingClientRect();
-            if (r.width < 1 || r.height < 1) blank++;
+            if (r.width < 1 || r.height < 1) shapeBlank++;
         }
-        if (!checked) return [];
-        // A few legitimately-hidden icons are normal; a majority is a font failure.
-        if (blank / checked < 0.5) return [];
-        return [blank + ' of ' + checked + ' icon elements render with no glyph'];
+        if (shapeBlank > 0) {
+            results.push(shapeBlank + ' icon/shape element(s) rendered with zero size (missing width/height/viewBox in source HTML)');
+        }
+        return results;
     }
 """
 
@@ -203,9 +238,9 @@ async def _warn_if_icon_fonts_missing(page):
         return
     if missing:
         print(
-            "WARNING: icon font(s) did not load: " + "; ".join(missing) + ".\n"
-            "         Icons will export BLANK. The deck loads them from a CDN "
-            "(e.g. cdnjs.cloudflare.com);\n"
+            "WARNING: icon/shape issue(s) detected: " + "; ".join(missing) + ".\n"
+            "         Some icons may export BLANK or missing. If the deck loads fonts "
+            "from a CDN (e.g. cdnjs.cloudflare.com),\n"
             "         check network access, or vendor the font locally into the HTML "
             "before converting.",
             file=sys.stderr,
@@ -840,19 +875,92 @@ async def render_deck_to_file(html_content: str, output_file: str):
                     """)
     
                     # FIX: Detect and isolate icon elements within cards
+                    # BROADENED (icon/shape coverage): the old allowlist only matched
+                    # <i>, .material-icons, svg<=150px, img<=100px — any other icon
+                    # technique (CSS mask-image icons, sprite <use> refs, oversized
+                    # badge icons, icon fonts outside FA/Phosphor, icons that live
+                    # OUTSIDE a card) fell through and was silently flattened into the
+                    # background, or vanished if it rendered at 0 size. Detection is now
+                    # structural/CSS-signal-based first (works for any icon pack, present
+                    # or future, without a converter change), with named-library class
+                    # checks kept only as a fast, low-risk accuracy boost.
                     await page.evaluate("""
                         () => {
+                            // Proportional cap instead of the old fixed 150/100px cutoff —
+                            // on the 1280x720 deck canvas this is ~200px, comfortably
+                            // covering large hero-section badge icons while staying well
+                            // under isCard's 90%-of-viewport structural-wrapper threshold.
+                            const ICON_MAX_PX = Math.min(window.innerWidth, window.innerHeight) * 0.28;
+                            const SVG_LEAF_TAGS = ['path','use','circle','rect','line','polygon','polyline','g','symbol','ellipse'];
+
                             const isIconElement = (el) => {
+                                // Guard against double-classification with isCard: a shape
+                                // that already qualifies as its own card (e.g. a
+                                // background-color + border-radius circle) must not also be
+                                // captured a second time as an "icon".
+                                if (el.hasAttribute('data-ppt-card')) return false;
+
                                 const tag = el.tagName.toLowerCase();
                                 const rect = el.getBoundingClientRect();
                                 if (rect.width <= 0 || rect.height <= 0) return false;
-                                if (el.classList && el.classList.contains('material-icons')) return true;
+                                if (el.classList && (
+                                    el.classList.contains('material-icons') ||
+                                    el.classList.contains('material-symbols-outlined') ||
+                                    el.classList.contains('material-symbols-rounded') ||
+                                    el.classList.contains('material-symbols-sharp')
+                                )) return true;
                                 if (tag === 'i') return true;
-                                if (tag === 'svg' && rect.width <= 150 && rect.height <= 150) return true;
-                                if (tag === 'img' && rect.width <= 100 && rect.height <= 100) return true;
+
+                                const withinCap = rect.width <= ICON_MAX_PX && rect.height <= ICON_MAX_PX;
+                                const aspect = rect.width / rect.height;
+                                const nearSquare = aspect >= 0.4 && aspect <= 2.5;
+                                const spansSlide = rect.width >= window.innerWidth * 0.5 || rect.height >= window.innerHeight * 0.5;
+
+                                // Size-based svg/img icons: near-square and not spanning the
+                                // slide, so a full-bleed decorative SVG background isn't swept
+                                // in just because one dimension happens to be small.
+                                if ((tag === 'svg' || tag === 'img') && withinCap && nearSquare && !spansSlide) return true;
+
+                                // ADDITIVE, pack-agnostic: CSS mask-image icons (Tailwind /
+                                // Heroicons-via-mask and similar). The shape comes from the
+                                // author's own mask, not a size guess, so no aspect guard.
+                                const cs = window.getComputedStyle(el);
+                                const hasMask = (cs.maskImage && cs.maskImage !== 'none') ||
+                                                (cs.webkitMaskImage && cs.webkitMaskImage !== 'none');
+                                if (hasMask && withinCap) return true;
+
+                                // ADDITIVE, pack-agnostic: an element whose direct children are
+                                // ALL raw SVG drawing primitives is an icon regardless of which
+                                // pack emitted it (catches sprite <use> refs and multi-path/
+                                // multi-group icons on a non-<svg> wrapper). Direct children
+                                // only, so a larger multi-part diagram doesn't qualify.
+                                if (el.children.length > 0 && withinCap) {
+                                    let allLeaves = true;
+                                    for (const c of el.children) {
+                                        if (SVG_LEAF_TAGS.indexOf(c.tagName.toLowerCase()) === -1) { allLeaves = false; break; }
+                                    }
+                                    if (allLeaves) return true;
+                                }
+
+                                // ADDITIVE, pack-agnostic fallback for icon FONTS with no named
+                                // entry above (tag <i> is already unconditionally an icon, so
+                                // this only adds coverage for <span>-based icon-font markup): a
+                                // <span> rendering 1-2 non-whitespace characters in a font
+                                // different from the page's own body text is very likely a
+                                // ligature/PUA glyph from an icon pack, not real short text.
+                                if (tag === 'span' && withinCap) {
+                                    const txt = (el.textContent || '').trim();
+                                    if (txt.length > 0 && txt.length <= 2 && !/\\s/.test(txt)) {
+                                        if (!window.__pptBodyFont) {
+                                            window.__pptBodyFont = window.getComputedStyle(document.body).fontFamily;
+                                        }
+                                        if (cs.fontFamily && cs.fontFamily !== window.__pptBodyFont) return true;
+                                    }
+                                }
+
                                 return false;
                             };
-    
+
                             const isIconContainer = (el) => {
                                 if (el.hasAttribute('data-ppt-card')) return false;
                                 // BUG FIX: this guard was gated to slide indices 2/3/6 — values
@@ -872,7 +980,7 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                 );
                                 if (hasDirectText) return false;
                                 const rect = el.getBoundingClientRect();
-                                if (rect.width < 10 || rect.height < 10 || rect.width > 150 || rect.height > 150) return false;
+                                if (rect.width < 10 || rect.height < 10 || rect.width > ICON_MAX_PX || rect.height > ICON_MAX_PX) return false;
                                 const visibleChildren = Array.from(el.children).filter(c => {
                                     const cs = getComputedStyle(c);
                                     return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0;
@@ -880,20 +988,54 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                 if (visibleChildren.length === 0) return false;
                                 return visibleChildren.every(c => isIconElement(c));
                             };
-    
+
+                            // Same tag/style prefilter is used both inside a card and at
+                            // top level below: cheap, and scoped to what isIconElement
+                            // actually recognises, rather than calling it on every node.
+                            const looksIconish = (el) => {
+                                const t = el.tagName.toLowerCase();
+                                if (t === 'i' || t === 'svg' || t === 'img' || t === 'span') return true;
+                                if (el.classList && el.classList.contains('material-icons')) return true;
+                                const cs = window.getComputedStyle(el);
+                                return (cs.maskImage && cs.maskImage !== 'none') ||
+                                       (cs.webkitMaskImage && cs.webkitMaskImage !== 'none');
+                            };
+
                             document.querySelectorAll('[data-ppt-card]').forEach(card => {
                                 card.querySelectorAll('*').forEach(el => {
                                     if (isIconContainer(el)) {
                                         el.setAttribute('data-ppt-icon', '');
                                     }
                                 });
-                                card.querySelectorAll('i, svg, .material-icons').forEach(el => {
-                                    if (isIconElement(el) && !el.closest('[data-ppt-icon]')) {
+                                card.querySelectorAll('*').forEach(el => {
+                                    if (el.closest('[data-ppt-icon]')) return;
+                                    if (looksIconish(el) && isIconElement(el)) {
                                         el.setAttribute('data-ppt-icon', '');
                                     }
                                 });
                             });
-    
+
+                            // ADDITIVE: icons/shapes that live OUTSIDE any card (directly
+                            // under .slide or a transparent wrapper) were previously never
+                            // visited by any classifier — the loop above only ever walks
+                            // inside [data-ppt-card] elements — so a top-level icon could
+                            // never be tagged for individual capture no matter what
+                            // isIconElement said, and simply vanished into the flat
+                            // background screenshot. Mirror the same two-pass logic here,
+                            // rooted at document.body, skipping anything already handled.
+                            document.body.querySelectorAll('*').forEach(el => {
+                                if (el.closest('[data-ppt-card]')) return;
+                                if (el.hasAttribute('data-ppt-card')) return;
+                                if (el.closest('[data-ppt-icon]')) return;
+                                if (isIconContainer(el)) {
+                                    el.setAttribute('data-ppt-icon', '');
+                                    return;
+                                }
+                                if (looksIconish(el) && isIconElement(el) && !el.closest('[data-ppt-icon]')) {
+                                    el.setAttribute('data-ppt-icon', '');
+                                }
+                            });
+
                             document.querySelectorAll('[data-ppt-icon]').forEach((el, i) => {
                                 el.setAttribute('data-ppt-icon', i);
                             });
@@ -940,7 +1082,30 @@ async def render_deck_to_file(html_content: str, output_file: str):
                             });
                         }
                     """)
-    
+
+                    # ADDITIVE: the broadened icon detection above (specifically the
+                    # generic glyph-font heuristic) can match an element that carries a
+                    # real text node — unlike the old <i>-tag icon fonts, which render
+                    # via ::before and never produce one. Icon tagging necessarily runs
+                    # after the text-extraction pass above (it needs the fully measured,
+                    # laid-out DOM), so such an element's glyph text was already captured
+                    # as a normal textbox before it was ever tagged data-ppt-icon. Left
+                    # alone it would export twice — once as the icon's own picture, once
+                    # as a stray overlapping textbox. Drop text entries that now overlap
+                    # a tagged icon's box, the same way §5.11 above cross-references
+                    # text_elements against the live DOM by position.
+                    try:
+                        text_elements = await page.evaluate("""
+                            (all) => {
+                                const iconBoxes = Array.from(document.querySelectorAll('[data-ppt-icon]'))
+                                    .map(el => el.getBoundingClientRect());
+                                const overlaps = (t, b) => !(b.right < t.x || b.left > t.x + t.w || b.bottom < t.y || b.top > t.y + t.h);
+                                return all.filter(t => !iconBoxes.some(b => overlaps(t, b)));
+                            }
+                        """, text_elements)
+                    except Exception:
+                        pass
+
                     # BUG FIX (layout shift): the TreeWalker span-wrap below inserts a
                     # DOM node around every text node. Inserting ANY element changes
                     # inline layout on some decks — on Meity Stage-4 slide 10 the
