@@ -243,14 +243,43 @@ _ISOLATE_JS = """
         document.documentElement.style.setProperty('background', 'transparent', 'important');
         document.body.style.setProperty('background', 'transparent', 'important');
 
-        document.body.querySelectorAll('*').forEach(o => {
-            if (o === el || el.contains(o) || ancestors.has(o) || o.contains(el)) return;
-            const b = o.getBoundingClientRect();
-            if (b.width === 0 || b.height === 0) return;
-            if (b.right < box.l || b.left > box.r || b.bottom < box.t || b.top > box.b) return;
-            remember(o);
-            o.style.setProperty('visibility', 'hidden', 'important');
-        });
+        // PERF: this used to call getBoundingClientRect() on EVERY element in the
+        // body, on EVERY capture, with the expensive DOM-relationship tests run
+        // first. On a dense slide (~2000 elements, 17 cards + 127 icons = 144
+        // captures) that is ~288,000 layout-forcing measurements for one slide —
+        // measured at ~0.82s per icon, 104s of a 127s slide, on a 0.5-CPU box.
+        // Two changes, no behaviour difference:
+        //   1) Reuse geometry cached once per slide (see _PREPARE_BOXES_JS). The
+        //      only things toggled between captures are visibility, background
+        //      and box-shadow, none of which affect layout, so the boxes stay
+        //      valid for the whole slide.
+        //   2) Reject on the cheap numeric box test FIRST; only run contains()
+        //      and the ancestor lookup for the few elements that actually
+        //      overlap the clip region.
+        const cachedEls = window.__pptEls;
+        const cachedBoxes = window.__pptBoxes;
+        if (cachedEls && cachedBoxes && cachedBoxes.length === cachedEls.length * 4) {
+            for (let i = 0; i < cachedEls.length; i++) {
+                const j = i * 4;
+                const bl = cachedBoxes[j], bt = cachedBoxes[j + 1];
+                const br = cachedBoxes[j + 2], bb = cachedBoxes[j + 3];
+                if (br <= bl || bb <= bt) continue;
+                if (br < box.l || bl > box.r || bb < box.t || bt > box.b) continue;
+                const o = cachedEls[i];
+                if (o === el || ancestors.has(o) || el.contains(o) || o.contains(el)) continue;
+                remember(o);
+                o.style.setProperty('visibility', 'hidden', 'important');
+            }
+        } else {
+            document.body.querySelectorAll('*').forEach(o => {
+                const b = o.getBoundingClientRect();
+                if (b.width === 0 || b.height === 0) return;
+                if (b.right < box.l || b.left > box.r || b.bottom < box.t || b.top > box.b) return;
+                if (o === el || ancestors.has(o) || el.contains(o) || o.contains(el)) return;
+                remember(o);
+                o.style.setProperty('visibility', 'hidden', 'important');
+            });
+        }
 
         // CHANGE (option B): when capturing a PARENT card, hide the cards nested
         // inside it. Without this the parent's image would contain its children's
@@ -282,6 +311,35 @@ _RESTORE_JS = """
         window.__pptIsolated = [];
     }
 """
+
+
+# PERF (companion to the cached lookup in _ISOLATE_JS): measure every element
+# once per slide, in a single pass, instead of re-measuring the whole document
+# on every one of the ~150 captures a dense slide performs. Safe because the
+# capture loop only ever toggles visibility/background/box-shadow, none of which
+# change layout geometry.
+_PREPARE_BOXES_JS = """
+    () => {
+        const els = Array.from(document.body.querySelectorAll('*'));
+        const boxes = new Float64Array(els.length * 4);
+        for (let i = 0; i < els.length; i++) {
+            const b = els[i].getBoundingClientRect();
+            const j = i * 4;
+            boxes[j] = b.left; boxes[j + 1] = b.top;
+            boxes[j + 2] = b.right; boxes[j + 3] = b.bottom;
+        }
+        window.__pptEls = els;
+        window.__pptBoxes = boxes;
+        return els.length;
+    }
+"""
+
+
+async def _prepare_boxes(page):
+    try:
+        return await page.evaluate(_PREPARE_BOXES_JS)
+    except Exception:
+        return 0
 
 
 async def _isolate(page, selector, pad, hide_nested=False):
@@ -1480,8 +1538,12 @@ async def render_deck_to_file(html_content: str, output_file: str):
                         })
                     """)
 
+                    # PERF: one geometry pass for the whole slide; every capture
+                    # below reuses it instead of re-measuring the document.
+                    _measured = await _prepare_boxes(page)
                     LOGGER.info(
-                        "Slide %s/%s: capturing %s card(s)", i + 1, slide_count, len(card_geo)
+                        "Slide %s/%s: capturing %s card(s) (geometry cached for %s element(s))",
+                        i + 1, slide_count, len(card_geo), _measured,
                     )
                     for card in card_geo:
                         j = card['sel']
