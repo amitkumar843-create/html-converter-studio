@@ -668,8 +668,20 @@ async def generate_pdf(
     """Generate PDF using original uploaded file name when provided."""
     input_name = source_filename or original_filename
 
+    # BUG FIX: html_content is normally the raw HTML text (from the request
+    # body or an uploaded file), not a filesystem path — but real HTML is
+    # routinely longer than the OS's per-component path-name limit (~255
+    # bytes on ext4/most Linux filesystems), so Path(...).exists() raised an
+    # uncaught OSError("File name too long") on virtually every real deck,
+    # 500-ing every /convert/pdf call. Only genuine short path-like strings
+    # should even attempt the filesystem check.
     possible_path = Path(str(html_content))
-    if possible_path.exists() and possible_path.suffix.lower() in {".html", ".htm"}:
+    try:
+        is_path = len(str(html_content)) < 4096 and possible_path.exists() \
+            and possible_path.suffix.lower() in {".html", ".htm"}
+    except OSError:
+        is_path = False
+    if is_path:
         if not input_name:
             input_name = possible_path.name
         html_content = possible_path.read_text(encoding="utf-8")
