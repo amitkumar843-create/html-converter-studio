@@ -1116,7 +1116,25 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                 return hasBg || hasBorder || hasShadow;
                             };
     
-                            const cards = Array.from(document.body.querySelectorAll('*')).filter(isCard);
+                            // BUG FIX (stray shapes from other slides): this scanned the whole
+                            // document, so anything outside the slide being rendered that still
+                            // had a real box was captured and stamped onto THIS slide. Measured
+                            // on Meity Stage-4: rendering slide 1, only 3 icon-ish elements live
+                            // inside the active slide while 171 sit outside it with non-zero
+                            // boxes (flow pills and imagery belonging to other slides) — which
+                            // is why every slide reported an identical ~115 icons and the export
+                            // came out littered with icons that are not in the design.
+                            // Scope detection to the slide actually being captured; the same
+                            // element the clip rectangle is computed from, so what we detect and
+                            // what we photograph always agree. Falls back to document.body for
+                            // single-page documents with no .slide structure (unchanged there).
+                            const __root = document.querySelector('.slide.active')
+                                || document.querySelector('.slide-shell.active')
+                                || document.querySelector('.slide')
+                                || document.querySelector('.slide-shell')
+                                || document.body;
+                            window.__pptRoot = __root;
+                            const cards = Array.from(__root.querySelectorAll('*')).filter(isCard);
                             // CHANGE (option B, approved): previously only TOP-LEVEL cards were
                             // kept — any card nested inside another was discarded, so the parent
                             // was captured as one flat image swallowing all its children. That
@@ -1300,7 +1318,12 @@ async def render_deck_to_file(html_content: str, output_file: str):
                             // isIconElement said, and simply vanished into the flat
                             // background screenshot. Mirror the same two-pass logic here,
                             // rooted at document.body, skipping anything already handled.
-                            document.body.querySelectorAll('*').forEach(el => {
+                            // BUG FIX (companion to the card scoping above): rooted at
+                            // document.body this captured icons belonging to OTHER slides and
+                            // painted them onto the slide being rendered. Scope to the active
+                            // slide — the same root the cards and the clip rectangle use.
+                            const __iconRoot = window.__pptRoot || document.body;
+                            __iconRoot.querySelectorAll('*').forEach(el => {
                                 if (el.closest('[data-ppt-card]')) return;
                                 if (el.hasAttribute('data-ppt-card')) return;
                                 if (el.closest('[data-ppt-icon]')) return;
