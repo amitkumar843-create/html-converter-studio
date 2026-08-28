@@ -5,6 +5,8 @@ import uuid
 import tempfile
 import math
 import re
+import time
+import logging
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -18,6 +20,21 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 BASE_DIR = Path(__file__).parent
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+# ADDITIVE (observability): this module previously emitted NOTHING between the
+# start of a conversion and its result — no progress, no timings, no phase
+# markers. A PPTX export of a heavy deck runs for minutes, so in production the
+# logs went silent for the whole run and a slow conversion was indistinguishable
+# from a hung or dead one. converter_pdf.py already had a logger; this mirrors
+# it (same format, same env var) so both halves of the service report alike.
+# Logging goes to stderr, which is not block-buffered when stdout is a pipe, so
+# lines appear in the platform log stream as they happen rather than in a burst
+# at process exit.
+logging.basicConfig(
+    level=getattr(logging, os.getenv("HTML_CONVERTER_LOG_LEVEL", "INFO").upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
+LOGGER = logging.getLogger("html_pptx_converter")
 
 
 # ADDITIVE (§5.9): emoji-as-icon font fallback. PowerPoint's default font
@@ -311,6 +328,16 @@ def count_slides(html_content: str) -> int:
     return count if count > 0 else 1
 
 def build_layered_pptx(slide_data_list, output_file):
+    # NOTE: this is the "packaging" phase and it is fully synchronous CPU work —
+    # it blocks the event loop while python-pptx assembles what can be hundreds
+    # of pictures per deck. Logged at both ends so a long save is visible rather
+    # than looking like a hang.
+    _t0 = time.perf_counter()
+    _shapes = sum(len(s.get('components', [])) + len(s.get('elements', [])) for s in slide_data_list)
+    LOGGER.info(
+        "Packaging PPTX: %s slide(s), ~%s shape(s) -> %s",
+        len(slide_data_list), _shapes, Path(output_file).name,
+    )
     prs = Presentation()
     blank_slide_layout = prs.slide_layouts[6]
     
@@ -406,6 +433,13 @@ def build_layered_pptx(slide_data_list, output_file):
                 pass
 
     prs.save(output_file)
+    try:
+        _size = Path(output_file).stat().st_size
+    except OSError:
+        _size = 0
+    LOGGER.info(
+        "Packaging done in %.1fs | %.1f KB", time.perf_counter() - _t0, _size / 1024.0
+    )
 
 async def get_html_resolution(browser, html_content: str):
     page = await browser.new_page(viewport={"width": 1280, "height": 720})
@@ -485,6 +519,8 @@ async def force_final_state(page, slide_index: int):
 async def render_deck_to_file(html_content: str, output_file: str):
     slide_count = count_slides(html_content)
     slides_for_output = []
+    _deck_t0 = time.perf_counter()
+    LOGGER.info("Detected slide deck with %s slide(s) | html=%s chars", slide_count, len(html_content))
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
@@ -511,6 +547,10 @@ async def render_deck_to_file(html_content: str, output_file: str):
                 _workers = os.cpu_count() or 1
             max_parallel_slides = max(1, min(slide_count, _workers))
             semaphore = asyncio.Semaphore(max_parallel_slides)
+            LOGGER.info(
+                "Viewport %sx%s | CPU cores=%s | parallel slide workers=%s",
+                dims["width"], dims["height"], os.cpu_count() or 1, max_parallel_slides,
+            )
 
             async def render_slide(i):
                 async with semaphore:
@@ -520,9 +560,19 @@ async def render_deck_to_file(html_content: str, output_file: str):
                     # died. try/finally guarantees cleanup; the re-raise tags
                     # the slide index for the operator.
                     page = await context.new_page()
+                    _t0 = time.perf_counter()
+                    LOGGER.info("Slide %s/%s: render started", i + 1, slide_count)
                     try:
                         await _render_slide_inner(i, page)
+                        LOGGER.info(
+                            "Slide %s/%s: render done in %.1fs", i + 1, slide_count,
+                            time.perf_counter() - _t0,
+                        )
                     except Exception as exc:
+                        LOGGER.error(
+                            "Slide %s/%s: FAILED after %.1fs: %s", i + 1, slide_count,
+                            time.perf_counter() - _t0, exc,
+                        )
                         raise RuntimeError(f"slide {i + 1}/{slide_count} failed to render: {exc}") from exc
                     finally:
                         try:
@@ -1277,6 +1327,9 @@ async def render_deck_to_file(html_content: str, output_file: str):
                         })
                     """)
 
+                    LOGGER.info(
+                        "Slide %s/%s: capturing %s card(s)", i + 1, slide_count, len(card_geo)
+                    )
                     for card in card_geo:
                         j = card['sel']
                         cbox = {'x': card['x'], 'y': card['y'], 'width': card['w'], 'height': card['h']}
@@ -1368,6 +1421,9 @@ async def render_deck_to_file(html_content: str, output_file: str):
                         })
                     """)
 
+                    LOGGER.info(
+                        "Slide %s/%s: capturing %s icon(s)", i + 1, slide_count, len(icon_geo)
+                    )
                     for icon in icon_geo:
                         k = icon['sel']
                         ibox = {'x': icon['x'], 'y': icon['y'], 'width': icon['w'], 'height': icon['h']}
@@ -1456,6 +1512,10 @@ async def render_deck_to_file(html_content: str, output_file: str):
 
             await asyncio.gather(*(render_slide(i) for i in range(slide_count)))
             slides_for_output.sort(key=lambda item: item.pop("_slide_index"))
+            LOGGER.info(
+                "All %s slide(s) rendered in %.1fs; closing browser",
+                slide_count, time.perf_counter() - _deck_t0,
+            )
 
             await context.close()
             await browser.close()
@@ -1467,5 +1527,17 @@ async def generate_pptx(html_content: str, source_filename: str | None = None, o
     input_name = source_filename or original_filename
     file_name = safe_pptx_filename(input_name)
     output_path = unique_output_path(file_name)
-    await render_deck_to_file(html_content, str(output_path))
+    started = time.perf_counter()
+    LOGGER.info("Starting PPTX conversion: %s", input_name or "unnamed HTML")
+    try:
+        await render_deck_to_file(html_content, str(output_path))
+    except Exception as exc:
+        LOGGER.error(
+            "PPTX conversion FAILED after %.1fs: %s: %s",
+            time.perf_counter() - started, type(exc).__name__, exc,
+        )
+        raise
+    LOGGER.info(
+        "Completed PPTX in %.1f seconds: %s", time.perf_counter() - started, output_path
+    )
     return str(output_path)
