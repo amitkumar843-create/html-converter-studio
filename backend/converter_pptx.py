@@ -1245,16 +1245,42 @@ async def render_deck_to_file(html_content: str, output_file: str):
                     """)
     
                     component_elements = []
-                    card_count = await page.locator('[data-ppt-card]').count()
-    
+
                     COMPONENT_CLIP_PAD = 8
                     # Upper bound on shadow-driven padding (see data-ppt-pad).
                     MAX_SHADOW_CLIP_PAD = 96
-    
-                    for j in range(card_count):
-                        loc = page.locator(f'[data-ppt-card="{j}"]')
-                        cbox = await loc.bounding_box()
-                        
+
+                    # BUG FIX (production crash): this used to walk cards with one
+                    # page.locator() per index and TWO round-trips each
+                    # (bounding_box() then get_attribute('data-ppt-pad')). A deck whose
+                    # own JavaScript is still mutating the DOM — we freeze CSS
+                    # animations, but the page's timers keep running — could detach a
+                    # tagged element between those two calls. bounding_box() then
+                    # succeeded while get_attribute() waited the full 30s for an element
+                    # that no longer existed and raised TimeoutError, which the
+                    # surrounding `except (TypeError, ValueError)` did not catch, so a
+                    # single vanished card killed the entire conversion:
+                    #   RuntimeError: slide 3/5 failed to render:
+                    #   Locator.get_attribute: Timeout 30000ms exceeded.
+                    #   waiting for locator("[data-ppt-card=\"7\"]")
+                    # Read every card's geometry AND pad in one evaluate instead: one
+                    # atomic snapshot of the DOM, so there is no window to race, no
+                    # implicit locator waiting to time out, and 2N fewer round-trips.
+                    card_geo = await page.evaluate("""
+                        () => Array.from(document.querySelectorAll('[data-ppt-card]')).map(el => {
+                            const r = el.getBoundingClientRect();
+                            return {
+                                sel: el.getAttribute('data-ppt-card'),
+                                x: r.x, y: r.y, w: r.width, h: r.height,
+                                pad: parseFloat(el.getAttribute('data-ppt-pad')) || 0
+                            };
+                        })
+                    """)
+
+                    for card in card_geo:
+                        j = card['sel']
+                        cbox = {'x': card['x'], 'y': card['y'], 'width': card['w'], 'height': card['h']}
+
                         if cbox and cbox['width'] > 0 and cbox['height'] > 0:
                             raw_left = cbox['x']
                             raw_top = cbox['y']
@@ -1275,10 +1301,8 @@ async def render_deck_to_file(html_content: str, output_file: str):
                             # instead of being sliced into a visible rectangle. Already capped
                             # in JS by the clearance to the nearest neighbouring card; capped
                             # again here so one huge shadow can't produce a giant image.
-                            try:
-                                shadow_pad = float(await loc.get_attribute('data-ppt-pad') or 0)
-                            except (TypeError, ValueError):
-                                shadow_pad = 0.0
+                            # Read from the atomic snapshot above — no locator round-trip.
+                            shadow_pad = card['pad']
                             if shadow_pad > pad:
                                 pad = min(shadow_pad, MAX_SHADOW_CLIP_PAD)
 
@@ -1330,11 +1354,24 @@ async def render_deck_to_file(html_content: str, output_file: str):
                     """)
     
                     ICON_CLIP_PAD = 4
-                    icon_count = await page.locator('[data-ppt-icon]').count()
-                    for k in range(icon_count):
-                        loc = page.locator(f'[data-ppt-icon="{k}"]')
-                        ibox = await loc.bounding_box()
-    
+                    # Same atomic-snapshot treatment as the card loop above: one
+                    # evaluate for every icon's geometry and pad, so a DOM mutation
+                    # mid-loop cannot strand a locator and time out the conversion.
+                    icon_geo = await page.evaluate("""
+                        () => Array.from(document.querySelectorAll('[data-ppt-icon]')).map(el => {
+                            const r = el.getBoundingClientRect();
+                            return {
+                                sel: el.getAttribute('data-ppt-icon'),
+                                x: r.x, y: r.y, w: r.width, h: r.height,
+                                pad: parseFloat(el.getAttribute('data-ppt-pad')) || 0
+                            };
+                        })
+                    """)
+
+                    for icon in icon_geo:
+                        k = icon['sel']
+                        ibox = {'x': icon['x'], 'y': icon['y'], 'width': icon['w'], 'height': icon['h']}
+
                         if ibox and ibox['width'] > 0 and ibox['height'] > 0:
                             # FIX: same proportional-padding fix as card clipping above —
                             # tiny glyph-sized icons (e.g. 8px font-awesome icons inside a
@@ -1344,10 +1381,8 @@ async def render_deck_to_file(html_content: str, output_file: str):
                             # BUG FIX: honour the shadow-aware pad here as well, so a shadowed
                             # icon container (e.g. the 54px .dp-logo-slot carrying a 20px
                             # shadow) doesn't get its shadow sliced into a grey rectangle.
-                            try:
-                                icon_shadow_pad = float(await loc.get_attribute('data-ppt-pad') or 0)
-                            except (TypeError, ValueError):
-                                icon_shadow_pad = 0.0
+                            # Read from the atomic snapshot above — no locator round-trip.
+                            icon_shadow_pad = icon['pad']
                             if icon_shadow_pad > ipad:
                                 ipad = min(icon_shadow_pad, MAX_SHADOW_CLIP_PAD)
                             left = max(0, ibox['x'] - ipad)
