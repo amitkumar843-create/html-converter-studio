@@ -216,10 +216,26 @@ _ICON_FONT_CHECK_JS = """
         const shapeSel = 'svg, img, [class*="icon" i], [style*="mask-image"], [class*="material-symbols"]';
         let shapeNodes = [];
         try { shapeNodes = Array.from(document.querySelectorAll(shapeSel)); } catch (e) { shapeNodes = []; }
+
+        // BUG FIX: checking only the element's OWN computed style flagged every
+        // icon on an INACTIVE slide. Hidden slides use `.slide{display:none}`, and
+        // a descendant of a display:none subtree keeps its own computed display
+        // while getBoundingClientRect() correctly reports 0x0 — so a healthy
+        // 7-slide deck reported "6 zero-size elements" every run. Walk ancestors
+        // and only judge elements that are actually being rendered.
+        const isRendered = (el) => {
+            let n = el;
+            while (n && n.nodeType === 1) {
+                const s = getComputedStyle(n);
+                if (s.display === 'none' || s.visibility === 'hidden') return false;
+                n = n.parentElement;
+            }
+            return true;
+        };
+
         let shapeBlank = 0;
         for (const el of shapeNodes) {
-            const cs = getComputedStyle(el);
-            if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+            if (!isRendered(el)) continue;
             const r = el.getBoundingClientRect();
             if (r.width < 1 || r.height < 1) shapeBlank++;
         }
@@ -1036,6 +1052,17 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                 }
                             });
 
+                            // Mark the ONLY icons that can duplicate a text entry: ones
+                            // carrying their own glyph text (from the icon-font heuristic).
+                            // Every other icon kind (svg/img/mask/sprite) contains no text
+                            // node at all, so it can never produce a duplicate textbox.
+                            document.querySelectorAll('[data-ppt-icon]').forEach(el => {
+                                const t = (el.textContent || '').trim();
+                                if (t.length > 0 && t.length <= 2 && !/\\s/.test(t)) {
+                                    el.setAttribute('data-ppt-icon-glyph', '');
+                                }
+                            });
+
                             document.querySelectorAll('[data-ppt-icon]').forEach((el, i) => {
                                 el.setAttribute('data-ppt-icon', i);
                             });
@@ -1091,16 +1118,32 @@ async def render_deck_to_file(html_content: str, output_file: str):
                     # laid-out DOM), so such an element's glyph text was already captured
                     # as a normal textbox before it was ever tagged data-ppt-icon. Left
                     # alone it would export twice — once as the icon's own picture, once
-                    # as a stray overlapping textbox. Drop text entries that now overlap
-                    # a tagged icon's box, the same way §5.11 above cross-references
-                    # text_elements against the live DOM by position.
+                    # as a stray textbox on top of it.
+                    #
+                    # BUG FIX: an earlier version of this dropped any text entry whose box
+                    # merely INTERSECTED any tagged icon box. That silently deleted whole
+                    # lines of legitimate copy: an icon inline in a sentence
+                    # ("Network status <svg/> operational across all sites") sits inside
+                    # that line's own text box, so the entire line was discarded — and a
+                    # picture-count-based regression check cannot see text loss at all.
+                    # Restrict it to what actually duplicates: only glyph-bearing icons
+                    # (tagged above), and only when the text box is CONTAINED in the icon
+                    # box and is itself glyph-length. A real sentence is neither.
                     try:
                         text_elements = await page.evaluate("""
                             (all) => {
-                                const iconBoxes = Array.from(document.querySelectorAll('[data-ppt-icon]'))
+                                const glyphBoxes = Array.from(document.querySelectorAll('[data-ppt-icon-glyph]'))
                                     .map(el => el.getBoundingClientRect());
-                                const overlaps = (t, b) => !(b.right < t.x || b.left > t.x + t.w || b.bottom < t.y || b.top > t.y + t.h);
-                                return all.filter(t => !iconBoxes.some(b => overlaps(t, b)));
+                                if (!glyphBoxes.length) return all;
+                                const PAD = 2;
+                                const containedIn = (t, b) =>
+                                    t.x >= b.left - PAD && t.y >= b.top - PAD &&
+                                    t.x + t.w <= b.right + PAD && t.y + t.h <= b.bottom + PAD;
+                                return all.filter(t => {
+                                    const s = (t.text || '').trim();
+                                    if (!s || s.length > 2 || /\\s/.test(s)) return true;
+                                    return !glyphBoxes.some(b => containedIn(t, b));
+                                });
                             }
                         """, text_elements)
                     except Exception:
