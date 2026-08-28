@@ -430,6 +430,40 @@ def is_slide_deck(html_content: str) -> bool:
     soup = BeautifulSoup(html_content, "html.parser")
     return len(soup.select(".slide")) > 1
 
+def warn_if_html_truncated(html_content: str) -> None:
+    """Flag input that looks cut off rather than silently exporting a short deck.
+
+    A deck pasted into the editor can be truncated by the BROWSER before it ever
+    reaches us — mobile Safari in particular caps very large clipboard/textarea
+    content, which lands almost exactly on a 1 MiB boundary. The request itself
+    is perfectly well-formed (valid JSON, no error), so nothing downstream
+    notices; the converter just faithfully exports the slides that survived.
+    Observed in production: a 9-10 slide deck arrived as 1048570 chars — 6 bytes
+    under 1 MiB — and exported as 4 slides with no error anywhere.
+    Silently shipping a truncated deliverable is worse than a slow one, so say so.
+    """
+    if not html_content:
+        return
+    tail = html_content[-512:].strip().lower()
+    looks_complete = tail.endswith("</html>") or tail.endswith("</body>") or "</html>" in tail
+    if looks_complete:
+        return
+
+    size = len(html_content)
+    near_power_of_two = any(
+        abs(size - (1 << bits)) <= 4096 for bits in (19, 20, 21, 22, 23)
+    )
+    LOGGER.warning(
+        "INPUT LOOKS TRUNCATED: %s chars and no closing </html> tag.%s "
+        "Slides after the cut-off point cannot be exported. If you pasted the "
+        "deck into the editor, the browser may have capped the paste — upload "
+        "the .html file instead, which is not subject to that limit.",
+        size,
+        " Size sits on a power-of-two boundary, which is characteristic of a"
+        " clipboard/buffer cap rather than a real file." if near_power_of_two else "",
+    )
+
+
 def count_slides(html_content: str) -> int:
     soup = BeautifulSoup(html_content, "html.parser")
     # Support normal decks (.slide) and wrapper/iframe decks such as GNIDA_v5 (.slide-shell)
@@ -633,6 +667,7 @@ async def render_deck_to_file(html_content: str, output_file: str):
     slides_for_output = []
     _deck_t0 = time.perf_counter()
     LOGGER.info("Detected slide deck with %s slide(s) | html=%s chars", slide_count, len(html_content))
+    warn_if_html_truncated(html_content)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
