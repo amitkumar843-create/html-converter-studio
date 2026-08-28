@@ -926,15 +926,33 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                                 // so gap state is tracked in the shared
                                                 // _lastRunRight/_lastRunTop/_lastRunEndedSpace vars.
                                                 let _gapSpace = "";
-                                                if (_lastRunRight !== null && !_lastRunEndedSpace &&
-                                                    !/^\\s/.test(content)) {
+                                                if (_lastRunRight !== null) {
                                                     const _r = document.createRange();
                                                     _r.selectNode(child);
                                                     const _first = _r.getClientRects()[0];
-                                                    if (_first &&
-                                                        Math.abs(_first.top - _lastRunTop) < 2 &&
-                                                        _first.left - _lastRunRight > 1.5) {
-                                                        _gapSpace = " ";
+                                                    if (_first) {
+                                                        if (_first.top - _lastRunTop > 2) {
+                                                            // BUG FIX: this run starts on a NEW VISUAL LINE.
+                                                            // Only an explicit <br> used to produce a line
+                                                            // break; a wrap caused by an inline-block sibling
+                                                            // did not, so runs from different lines were
+                                                            // concatenated and PowerPoint laid them out on
+                                                            // one line. Seen on a highlighted heading —
+                                                            //   <h1>Unified <span class=hl>Intelligence</span>
+                                                            //       & Enforcement</h1>
+                                                            // where the highlighted span is its own shape:
+                                                            // the parent exported as "Unified  & Enforcement"
+                                                            // on a single line, and the separately-placed
+                                                            // "Intelligence" landed on top of it. Emitting a
+                                                            // newline restores the source's line structure
+                                                            // (python-pptx turns \\n into a real <a:br>).
+                                                            _gapSpace = "\\n";
+                                                        } else if (!_lastRunEndedSpace &&
+                                                                   !/^\\s/.test(content) &&
+                                                                   Math.abs(_first.top - _lastRunTop) < 2 &&
+                                                                   _first.left - _lastRunRight > 1.5) {
+                                                            _gapSpace = " ";
+                                                        }
                                                     }
                                                 }
                                                 _lastRunEndedSpace = /\\s$/.test(content);
@@ -1475,6 +1493,26 @@ async def render_deck_to_file(html_content: str, output_file: str):
                                     '*{color:transparent !important;-webkit-text-fill-color:transparent !important;}'
                                     + rules.join('');
                                 document.head.appendChild(st);
+
+                                // BUG FIX: SVG text is painted with `fill`, not `color`, so the
+                                // rule above did not hide it. Chart labels written as
+                                //   <text x="50" y="46" fill="#FFE600">85%</text>
+                                // therefore stayed visible and were BAKED into the card or icon
+                                // screenshot, while the extractor also emitted them as editable
+                                // textboxes — drawing the same label twice, slightly offset
+                                // (observed on the EY Reset donut: "85%" over "85%").
+                                // Hide the fill so only the editable copy remains.
+                                //
+                                // Safe for every SVG here, including ones that later get tagged
+                                // [data-ppt-icon]: text extraction runs BEFORE icon tagging, so
+                                // that attribute does not exist yet when text is collected and
+                                // the label has already been captured as a textbox regardless.
+                                // (.material-icons is class-based, exists up front, and IS
+                                // excluded from extraction — so its glyphs must stay painted.)
+                                document.querySelectorAll('svg text, svg tspan').forEach(el => {
+                                    if (el.closest('.material-icons')) return;
+                                    el.style.setProperty('fill', 'transparent', 'important');
+                                });
                             }
                         """)
                         _css_text_hidden = True
