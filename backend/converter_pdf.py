@@ -32,15 +32,26 @@ def _launch_kwargs():
     if executable: kwargs["executable_path"] = executable
     return kwargs
 
-def _workers(slide_count):
-    cpu = os.cpu_count() or 1
-    workers = _env_int("HTML_CONVERTER_WORKERS", min(cpu, 4), 1, max(1, slide_count))
-    LOGGER.info("CPU cores=%s | slides=%s | parallel workers=%s", cpu, slide_count, workers)
-    return workers
+# BUG FIX (OOM kills on the PDF path): this sized the worker pool from
+# os.cpu_count(), which reports the HOST's cores rather than the container's
+# share — on the production instance it read 8 while the box actually had 0.5
+# CPU and 512MB, so the PDF path launched up to 4 parallel Chromium pages and
+# the platform OOM-killed the process mid-conversion. The PPTX path was fixed
+# for exactly this, but the logic was duplicated here rather than shared, so the
+# PDF path kept crashing. Both now use the same container-aware sizing.
+from runtime_limits import (  # noqa: E402
+    CONVERSION_SLOTS,
+    MAX_CONCURRENT,
+    describe_limits,
+    device_scale as _scale,
+    slide_worker_budget,
+)
 
-def _scale():
-    try: return max(1.0, min(3.0, float(os.getenv("HTML_CONVERTER_SCALE", "2"))))
-    except ValueError: return 2.0
+
+def _workers(slide_count):
+    workers = slide_worker_budget(slide_count)
+    LOGGER.info("%s | slides=%s | parallel workers=%s", describe_limits(), slide_count, workers)
+    return workers
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -690,12 +701,36 @@ async def generate_pdf(
     output_path = unique_output_path(file_name)
 
     started = time.perf_counter()
-    LOGGER.info("Starting PDF conversion: %s", input_name or "unnamed HTML")
-    if is_slide_deck(html_content):
-        LOGGER.info("Detected slide deck with %s slide(s)", count_slides(html_content))
-        await render_deck_to_pdf(html_content, str(output_path))
-    else:
-        LOGGER.info("Detected regular HTML")
-        await render_regular_html_to_pdf(html_content, str(output_path))
+    # BUG FIX (OOM kills): nothing stopped a second conversion starting while
+    # one was already in flight, so a retry doubled the live Chromium instances
+    # and OOM-killed the box, losing BOTH runs. The slot is shared with the PPTX
+    # converter — each holds its own Chromium, so a PDF running alongside a PPTX
+    # exhausts a small container just as surely as two of either.
+    if CONVERSION_SLOTS.locked():
+        LOGGER.info(
+            "Queued PDF conversion: %s (another conversion is in flight; limit=%s, "
+            "set HTML_CONVERTER_MAX_CONCURRENT to raise)",
+            input_name or "unnamed HTML", MAX_CONCURRENT,
+        )
+    async with CONVERSION_SLOTS:
+        waited = time.perf_counter() - started
+        LOGGER.info(
+            "Starting PDF conversion: %s%s",
+            input_name or "unnamed HTML",
+            f" (waited {waited:.1f}s in queue)" if waited > 1 else "",
+        )
+        try:
+            if is_slide_deck(html_content):
+                LOGGER.info("Detected slide deck with %s slide(s)", count_slides(html_content))
+                await render_deck_to_pdf(html_content, str(output_path))
+            else:
+                LOGGER.info("Detected regular HTML")
+                await render_regular_html_to_pdf(html_content, str(output_path))
+        except Exception as exc:
+            LOGGER.error(
+                "PDF conversion FAILED after %.1fs: %s: %s",
+                time.perf_counter() - started, type(exc).__name__, exc,
+            )
+            raise
     LOGGER.info("Completed PDF in %.2f seconds: %s", time.perf_counter() - started, output_path)
     return str(output_path)

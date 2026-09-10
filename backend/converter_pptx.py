@@ -37,116 +37,19 @@ logging.basicConfig(
 LOGGER = logging.getLogger("html_pptx_converter")
 
 
-# BUG FIX (OOM kills in production): os.cpu_count() reports the HOST's cores,
-# not the container's share, so on a small PaaS instance it happily reported 8
-# and we launched 4 parallel Chromium pages at device_scale_factor=2 on a
-# container provisioned for about one. The platform OOM-killed the process
-# mid-conversion, which restarts the app, drops the client connection, and
-# surfaces in the browser as a generic "Load failed" with no error in the logs.
-# Read the real cgroup CPU quota and memory limit instead, and size the work to
-# whichever is smaller.
-def _cgroup_int(path: str):
-    try:
-        raw = Path(path).read_text().strip().split()[0]
-    except (OSError, IndexError):
-        return None
-    if raw in ("max", "-1"):
-        return None
-    try:
-        value = int(raw)
-    except ValueError:
-        return None
-    return value if value > 0 else None
-
-
-def _effective_cpus() -> float:
-    """CPUs actually available to THIS container, not the host."""
-    # cgroup v2: "<quota> <period>" in cpu.max
-    try:
-        parts = Path("/sys/fs/cgroup/cpu.max").read_text().strip().split()
-        if len(parts) == 2 and parts[0] != "max":
-            quota, period = int(parts[0]), int(parts[1])
-            if quota > 0 and period > 0:
-                return max(0.5, quota / period)
-    except (OSError, ValueError):
-        pass
-    # cgroup v1
-    quota = _cgroup_int("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
-    period = _cgroup_int("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
-    if quota and period:
-        return max(0.5, quota / period)
-    # Respect the process's actual CPU affinity mask before falling back.
-    try:
-        return float(len(os.sched_getaffinity(0)))
-    except (AttributeError, OSError):
-        return float(os.cpu_count() or 1)
-
-
-def _memory_limit_mb():
-    """Container memory limit in MB, or None when unconstrained."""
-    for path in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
-        value = _cgroup_int(path)
-        # Unconstrained cgroups report an enormous sentinel value.
-        if value and value < (1 << 62):
-            return value / (1024 * 1024)
-    return None
-
-
-# Each concurrent Chromium page (2x device scale on a 1280x720 viewport) plus
-# its screenshot buffers costs roughly this much; the browser process itself
-# needs a similar baseline. Deliberately conservative: being OOM-killed loses
-# the whole conversion, while one fewer worker only makes it slower.
-_MB_PER_SLIDE_WORKER = 450
-_BROWSER_BASE_MB = 350
-
-
-def _slide_worker_budget(slide_count: int) -> int:
-    explicit = os.getenv("HTML_CONVERTER_WORKERS", "").strip()
-    if explicit:
-        try:
-            return max(1, min(slide_count, int(explicit)))
-        except ValueError:
-            LOGGER.warning("Ignoring non-numeric HTML_CONVERTER_WORKERS=%r", explicit)
-
-    budget = max(1, int(_effective_cpus()))
-
-    mem_mb = _memory_limit_mb()
-    if mem_mb:
-        by_mem = int((mem_mb - _BROWSER_BASE_MB) // _MB_PER_SLIDE_WORKER)
-        budget = min(budget, max(1, by_mem))
-
-    # WEB_CONCURRENCY is the platform's own sizing hint (Render sets it from the
-    # instance's real CPU allowance); when it says 1, the box is small.
-    web_conc = os.getenv("WEB_CONCURRENCY", "").strip()
-    if web_conc:
-        try:
-            if int(web_conc) <= 1:
-                budget = min(budget, 2)
-        except ValueError:
-            pass
-
-    return max(1, min(slide_count, budget))
-
-
-# BUG FIX (OOM kills): nothing stopped a second conversion starting while one
-# was already in flight. A user hitting Convert again after a slow run doubled
-# the number of live Chromium pages and reliably OOM-killed the instance
-# (observed: a retry at 07:40:28 on top of a run still going, process killed at
-# 07:41:25). Serialise whole conversions per process by default so a retry
-# queues instead of racing; raise the limit only on a box with headroom.
-try:
-    _MAX_CONCURRENT = max(1, int(os.getenv("HTML_CONVERTER_MAX_CONCURRENT", "1")))
-except ValueError:
-    _MAX_CONCURRENT = 1
-_CONVERSION_SLOTS = asyncio.Semaphore(_MAX_CONCURRENT)
-
-
-def _device_scale() -> float:
-    """Screenshot scale. 2x is crisp but quadruples pixel memory per capture."""
-    try:
-        return max(1.0, min(3.0, float(os.getenv("HTML_CONVERTER_SCALE", "2"))))
-    except ValueError:
-        return 2.0
+# Container-aware sizing and the cross-converter conversion limit now live in
+# runtime_limits.py so the PDF path uses exactly the same logic. Keeping two
+# copies is what let converter_pdf.py keep sizing from os.cpu_count() and go on
+# OOM-killing the instance after this file had been fixed.
+from runtime_limits import (  # noqa: E402
+    CONVERSION_SLOTS as _CONVERSION_SLOTS,
+    MAX_CONCURRENT as _MAX_CONCURRENT,
+    describe_limits as _describe_limits,
+    device_scale as _device_scale,
+    effective_cpus as _effective_cpus,
+    memory_limit_mb as _memory_limit_mb,
+    slide_worker_budget as _slide_worker_budget,
+)
 
 
 # ADDITIVE (§5.9): emoji-as-icon font fallback. PowerPoint's default font
