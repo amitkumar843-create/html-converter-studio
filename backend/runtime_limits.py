@@ -63,6 +63,64 @@ def memory_limit_mb():
     return None
 
 
+def _memory_used_mb():
+    """Memory this container is currently holding, in MB, or None."""
+    for path in ("/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory/memory.usage_in_bytes"):
+        value = _cgroup_int(path)
+        if value is not None:
+            used = value / (1024 * 1024)
+            # memory.current counts the page cache, which the kernel reclaims
+            # under pressure — treating it as "used" would throttle the worker
+            # pool for memory that is in practice available.
+            used -= _reclaimable_mb()
+            return max(0.0, used)
+    return None
+
+
+def _reclaimable_mb() -> float:
+    """Page cache and reclaimable slab inside the cgroup's usage figure."""
+    total = 0
+    for path in ("/sys/fs/cgroup/memory.stat", "/sys/fs/cgroup/memory/memory.stat"):
+        try:
+            for line in Path(path).read_text().splitlines():
+                key, _, raw = line.partition(" ")
+                if key in ("inactive_file", "slab_reclaimable"):
+                    try:
+                        total += int(raw)
+                    except ValueError:
+                        pass
+            if total:
+                break
+        except OSError:
+            continue
+    return total / (1024 * 1024)
+
+
+def memory_available_mb():
+    """Memory actually free RIGHT NOW, not merely the ceiling.
+
+    Sizing against the container's total limit overcommits: by the time slides
+    start rendering, the interpreter, the decoded HTML (multi-megabyte decks are
+    held as a string, often more than once across the request path) and any
+    other in-flight work already occupy part of that ceiling. Budget Chromium
+    workers against the remaining headroom instead.
+    """
+    limit = memory_limit_mb()
+    used = _memory_used_mb()
+    if limit is not None:
+        if used is not None:
+            return max(0.0, limit - used)
+        return limit
+    # Unconstrained cgroup (bare metal, or a dev box): ask the kernel.
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) / 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
 # Each concurrent Chromium page (2x device scale on a 1280x720 viewport) plus
 # its screenshot buffers costs roughly this much; the browser process itself
 # needs a similar baseline. Deliberately conservative: being OOM-killed loses
@@ -82,7 +140,12 @@ def slide_worker_budget(slide_count: int) -> int:
 
     budget = max(1, int(effective_cpus()))
 
-    mem_mb = memory_limit_mb()
+    # Size against memory that is FREE at this moment, not the container's
+    # ceiling — see memory_available_mb(). Falls back to the ceiling when usage
+    # cannot be read, which is the previous (more optimistic) behaviour.
+    mem_mb = memory_available_mb()
+    if mem_mb is None:
+        mem_mb = memory_limit_mb()
     if mem_mb:
         by_mem = int((mem_mb - _BROWSER_BASE_MB) // _MB_PER_SLIDE_WORKER)
         budget = min(budget, max(1, by_mem))
@@ -127,8 +190,12 @@ CONVERSION_SLOTS = asyncio.Semaphore(MAX_CONCURRENT)
 
 def describe_limits() -> str:
     """One-line summary for the logs, so undersizing is visible in production."""
-    mem = memory_limit_mb()
+    limit = memory_limit_mb()
+    free = memory_available_mb()
+    used = _memory_used_mb()
     return (
         f"container cpus={effective_cpus():.1f} (host reports {os.cpu_count() or 1}) | "
-        f"memory limit={f'{mem:.0f}MB' if mem else 'unset'}"
+        f"memory limit={f'{limit:.0f}MB' if limit else 'unset'}"
+        f"{f', used={used:.0f}MB' if used is not None else ''}"
+        f"{f', free={free:.0f}MB' if free is not None else ''}"
     )

@@ -656,14 +656,10 @@ async def render_deck_to_file(html_content: str, output_file: str):
             # reading caused OOM kills on small instances.
             max_parallel_slides = _slide_worker_budget(slide_count)
             semaphore = asyncio.Semaphore(max_parallel_slides)
-            _mem = _memory_limit_mb()
             LOGGER.info(
-                "Viewport %sx%s @%.0fx | container cpus=%.1f (host reports %s) | "
-                "memory limit=%s | parallel slide workers=%s",
+                "Viewport %sx%s @%.0fx | %s | parallel slide workers=%s",
                 dims["width"], dims["height"], _scale,
-                _effective_cpus(), os.cpu_count() or 1,
-                f"{_mem:.0f}MB" if _mem else "unset",
-                max_parallel_slides,
+                _describe_limits(), max_parallel_slides,
             )
 
             async def render_slide(i):
